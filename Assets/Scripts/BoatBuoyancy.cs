@@ -22,6 +22,10 @@ public class BoatBuoyancy : MonoBehaviour
     public float bounceDamping = 0.8f;
     public LayerMask boundaryLayerMask;
     
+    [Header("Dynamic Water Reference")]
+    public WaterSimulation waterSurface;
+    public bool useDynamicWaterSurface = true;
+    
     private Rigidbody rb;
     private float[] pointsHeightFromWater;
     private Vector3 initialPosition;
@@ -58,6 +62,13 @@ public class BoatBuoyancy : MonoBehaviour
             boatPhysicsMaterial.bounceCombine = PhysicMaterialCombine.Maximum;
             boatCollider.material = boatPhysicsMaterial;
         }
+        
+        // Register the boat with the water simulation for efficient updates
+        if (waterSurface != null && useDynamicWaterSurface)
+        {
+            // Initial registration
+            waterSurface.UpdateBoatBuoyancy(this);
+        }
     }
     
     private void FixedUpdate()
@@ -70,11 +81,21 @@ public class BoatBuoyancy : MonoBehaviour
         // For each floating point
         for (int i = 0; i < floatingPoints.Length; i++)
         {
-            // Calculate wave height at this position (sampled from a composite of sine waves)
-            float waveHeight = CalculateWaveHeight(floatingPoints[i].position);
+            float effectiveWaterLevel;
+            Vector3 waterNormal = Vector3.up;
             
-            // Adjust the effective water level with the wave height
-            float effectiveWaterLevel = waterLevel + waveHeight;
+            if (waterSurface != null && useDynamicWaterSurface)
+            {
+                // Use the dynamic water simulation to determine water height and normal
+                effectiveWaterLevel = waterSurface.GetWaterHeightAt(floatingPoints[i].position);
+                waterNormal = waterSurface.GetWaterNormalAt(floatingPoints[i].position);
+            }
+            else
+            {
+                // Fallback to the simple sine wave model
+                float waveHeight = CalculateWaveHeight(floatingPoints[i].position);
+                effectiveWaterLevel = waterLevel + waveHeight;
+            }
             
             // Get the height of the point relative to the water surface
             pointsHeightFromWater[i] = floatingPoints[i].position.y - effectiveWaterLevel;
@@ -85,7 +106,7 @@ public class BoatBuoyancy : MonoBehaviour
                 pointsUnderWater++;
                 
                 // Calculate force based on depth and apply it
-                Vector3 force = Vector3.up * buoyancyForce * Mathf.Abs(pointsHeightFromWater[i]);
+                Vector3 force = waterNormal * buoyancyForce * Mathf.Abs(pointsHeightFromWater[i]);
                 rb.AddForceAtPosition(force, floatingPoints[i].position);
                 
                 // Accumulate the buoyancy center
@@ -93,6 +114,21 @@ public class BoatBuoyancy : MonoBehaviour
                 
                 // Accumulate total force for drag calculations
                 totalForce += force.magnitude;
+                
+                // Add force to the water simulation (cause splash)
+                if (waterSurface != null && useDynamicWaterSurface)
+                {
+                    float impactVelocity = Vector3.Dot(rb.GetPointVelocity(floatingPoints[i].position), Vector3.down);
+                    if (impactVelocity > 1.0f)
+                    {
+                        // Create splash effect proportional to velocity
+                        waterSurface.AddForceAtPosition(
+                            floatingPoints[i].position,
+                            -impactVelocity * 0.05f, // Negative force creates a depression
+                            0.3f  // Small radius for localized effect
+                        );
+                    }
+                }
             }
         }
         
@@ -119,6 +155,23 @@ public class BoatBuoyancy : MonoBehaviour
         
         // Check for collision with boundaries and apply corrective forces if needed
         CheckAndHandleBoundaryCollisions();
+    }
+    
+    private void LateUpdate()
+    {
+        // Add wake effect when the boat is moving
+        if (waterSurface != null && useDynamicWaterSurface && rb.velocity.magnitude > 0.5f)
+        {
+            // Create wake behind the boat
+            Vector3 boatDirection = transform.forward;
+            Vector3 wakePosition = transform.position - boatDirection * 0.5f;
+            
+            // Apply more force the faster the boat is moving
+            float wakeForce = -rb.velocity.magnitude * 0.05f;
+            float wakeRadius = 0.5f + rb.velocity.magnitude * 0.1f;
+            
+            waterSurface.AddForceAtPosition(wakePosition, wakeForce, wakeRadius);
+        }
     }
     
     private void CheckAndHandleBoundaryCollisions()
@@ -161,6 +214,17 @@ public class BoatBuoyancy : MonoBehaviour
             
             // Dampen velocity
             rb.velocity *= bounceDamping;
+            
+            // Add impact to water simulation
+            if (waterSurface != null && useDynamicWaterSurface)
+            {
+                float impactMagnitude = collision.relativeVelocity.magnitude;
+                waterSurface.AddForceAtPosition(
+                    contact.point, 
+                    -impactMagnitude * 0.2f, 
+                    impactMagnitude * 0.3f
+                );
+            }
         }
     }
     
@@ -236,6 +300,17 @@ public class BoatBuoyancy : MonoBehaviour
                 if (point != null)
                 {
                     Gizmos.DrawSphere(point.position, 0.1f);
+                    
+                    // If we're using the water surface, draw the water level at each point
+                    if (Application.isPlaying && waterSurface != null && useDynamicWaterSurface)
+                    {
+                        float waterHeight = waterSurface.GetWaterHeightAt(point.position);
+                        Vector3 waterPos = new Vector3(point.position.x, waterHeight, point.position.z);
+                        
+                        Gizmos.color = Color.cyan;
+                        Gizmos.DrawSphere(waterPos, 0.05f);
+                        Gizmos.DrawLine(point.position, waterPos);
+                    }
                 }
             }
         }
