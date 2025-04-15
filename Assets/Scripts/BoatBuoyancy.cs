@@ -22,6 +22,18 @@ public class BoatBuoyancy : MonoBehaviour
     public float bounceDamping = 0.8f;
     public LayerMask boundaryLayerMask;
     
+    [Header("Direction Control")]
+    public bool maintainDirection = true;
+    public Vector3 targetDirection = Vector3.forward; // Default direction (Z axis)
+    public float directionForce = 2.0f;
+    public float directionDamping = 0.5f;
+    
+    [Header("Stability Monitoring")]
+    public float maxAllowedTilt = 60.0f;          // Maximum tilt angle before triggering game over sequence
+    public float maxTiltDuration = 3.0f;          // How long the boat can be over max tilt before game over
+    [SerializeField] private float currentTiltAngle = 0.0f;  // Current tilt angle (for debugging)
+    [SerializeField] private float overTiltTimer = 0.0f;     // How long the boat has been over max tilt
+    
     [Header("Dynamic Water Reference")]
     public WaterSimulation waterSurface;
     public bool useDynamicWaterSurface = true;
@@ -31,6 +43,10 @@ public class BoatBuoyancy : MonoBehaviour
     private Vector3 initialPosition;
     private Quaternion initialRotation;
     private Collider boatCollider;
+    
+    // Event to notify game manager when boat has been tilted for too long
+    public delegate void BoatStabilityEvent();
+    public event BoatStabilityEvent OnMaxTiltExceeded;
     
     private void Start()
     {
@@ -69,9 +85,36 @@ public class BoatBuoyancy : MonoBehaviour
             // Initial registration
             waterSurface.UpdateBoatBuoyancy(this);
         }
+        
+        // Normalize target direction to ensure consistent behavior
+        if (targetDirection != Vector3.zero)
+        {
+            targetDirection.Normalize();
+        }
+        else
+        {
+            targetDirection = Vector3.forward;
+        }
     }
     
     private void FixedUpdate()
+    {
+        ApplyBuoyancyForces();
+        
+        // Check for collision with boundaries and apply corrective forces if needed
+        CheckAndHandleBoundaryCollisions();
+        
+        // Maintain boat direction if enabled
+        if (maintainDirection)
+        {
+            MaintainBoatDirection();
+        }
+        
+        // Monitor boat stability
+        MonitorBoatStability();
+    }
+    
+    private void ApplyBuoyancyForces()
     {
         float totalForce = 0.0f;
         int pointsUnderWater = 0;
@@ -152,9 +195,58 @@ public class BoatBuoyancy : MonoBehaviour
             Vector3 randomDirection = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f)).normalized;
             rb.AddTorque(randomDirection * randomForce, ForceMode.Impulse);
         }
+    }
+    
+    private void MaintainBoatDirection()
+    {
+        // Project current forward direction onto the horizontal plane
+        Vector3 currentDirection = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
         
-        // Check for collision with boundaries and apply corrective forces if needed
-        CheckAndHandleBoundaryCollisions();
+        // Project target direction onto the horizontal plane
+        Vector3 desiredDirection = Vector3.ProjectOnPlane(targetDirection, Vector3.up).normalized;
+        
+        // Calculate the rotation needed to align with target direction
+        float angleDifference = Vector3.SignedAngle(currentDirection, desiredDirection, Vector3.up);
+        
+        // Apply torque to rotate toward the target direction
+        if (Mathf.Abs(angleDifference) > 1.0f)  // Only apply force if there's a significant angle difference
+        {
+            // Calculate torque strength based on angle difference
+            float torqueStrength = Mathf.Sign(angleDifference) * directionForce * Mathf.Min(Mathf.Abs(angleDifference) / 45.0f, 1.0f);
+            
+            // Apply torque around the up axis
+            rb.AddTorque(Vector3.up * torqueStrength, ForceMode.Force);
+            
+            // Apply damping to horizontal angular velocity to prevent excessive oscillation
+            Vector3 angularVel = rb.angularVelocity;
+            angularVel.y *= (1f - directionDamping * Time.fixedDeltaTime);
+            rb.angularVelocity = angularVel;
+        }
+    }
+    
+    private void MonitorBoatStability()
+    {
+        // Calculate current tilt angle from upright position
+        currentTiltAngle = Vector3.Angle(Vector3.up, transform.up);
+        
+        // Check if tilt exceeds maximum allowed
+        if (currentTiltAngle > maxAllowedTilt)
+        {
+            // Increment timer while over max tilt
+            overTiltTimer += Time.fixedDeltaTime;
+            
+            // If over the threshold for too long, trigger event
+            if (overTiltTimer >= maxTiltDuration && OnMaxTiltExceeded != null)
+            {
+                OnMaxTiltExceeded.Invoke();
+                overTiltTimer = 0f; // Reset to prevent repeated triggers
+            }
+        }
+        else
+        {
+            // Reset timer when within acceptable tilt
+            overTiltTimer = 0f;
+        }
     }
     
     private void LateUpdate()
@@ -287,6 +379,19 @@ public class BoatBuoyancy : MonoBehaviour
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+        
+        // Reset stability monitoring
+        overTiltTimer = 0f;
+    }
+    
+    public float GetCurrentTiltAngle()
+    {
+        return currentTiltAngle;
+    }
+    
+    public float GetOverTiltTime()
+    {
+        return overTiltTimer;
     }
     
     private void OnDrawGizmos()
@@ -320,6 +425,20 @@ public class BoatBuoyancy : MonoBehaviour
         {
             Gizmos.color = Color.red;
             Gizmos.DrawRay(transform.position, rb.velocity.normalized * 0.5f);
+        }
+        
+        // Draw target direction indicator
+        if (maintainDirection)
+        {
+            Gizmos.color = Color.green;
+            Vector3 start = transform.position;
+            Vector3 end = start + targetDirection.normalized * 2f;
+            Gizmos.DrawLine(start, end);
+            
+            // Draw a small arrow tip
+            Vector3 right = Vector3.Cross(Vector3.up, targetDirection).normalized * 0.2f;
+            Gizmos.DrawLine(end, end - targetDirection.normalized * 0.5f + right);
+            Gizmos.DrawLine(end, end - targetDirection.normalized * 0.5f - right);
         }
     }
 } 

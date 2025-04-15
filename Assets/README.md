@@ -46,6 +46,7 @@ In this game, you control a glass box containing simulated ocean water with a bo
 7. Set up the UI elements:
    - Create a Canvas
    - Add Text elements for score and balance
+   - Add Text element for tilt timer warning (optional)
    - Create a Game Over panel with a restart button
 
 ### Layer Setup
@@ -72,6 +73,13 @@ In this game, you control a glass box containing simulated ocean water with a bo
    - Assign the WaterSimulation to the "Water Surface" field
    - Set "Use Dynamic Water Surface" to true
    - Set the "Boundary Layer Mask" to include only the "BoxBoundary" layer
+   - Configure the "Direction Control" settings for boat orientation
+   - Set the "Stability Monitoring" parameters to control game-over conditions
+
+4. In the **GameManager** component:
+   - Assign the GazingBox, Boat, and WaterSurface
+   - Set up UI references including the optional tilt timer text
+   - Add appropriate sound effects for balance warnings and critical tilt warnings
 
 ## Component Details
 
@@ -135,6 +143,14 @@ This script simulates the boat's buoyancy and physics interactions with water.
 | Wave Height | Height of waves (for simple wave model). Only used when not using dynamic water. |
 | Wave Frequency | How closely waves are spaced (for simple wave model). |
 | Wave Speed | How quickly waves move (for simple wave model). |
+| **Direction Control** |
+| Maintain Direction | Whether to automatically keep the boat oriented in a specific direction. |
+| Target Direction | The direction vector the boat should try to face (default is forward/Z-axis). |
+| Direction Force | Strength of the auto-orientation. Higher values make the boat turn more aggressively. |
+| Direction Damping | Reduces oscillation when auto-orienting. Higher values create smoother turning. |
+| **Stability Monitoring** |
+| Max Allowed Tilt | Maximum tilt angle in degrees before triggering the game-over sequence. |
+| Max Tilt Duration | How many seconds the boat can remain tilted beyond the maximum before the game ends. |
 | **Collision Handling** |
 | Bounce Force | Force applied when the boat collides with box boundaries. Higher values create stronger bounces. |
 | Bounce Damping | Reduction in velocity after collision. Higher values make collisions less bouncy. |
@@ -142,6 +158,35 @@ This script simulates the boat's buoyancy and physics interactions with water.
 | **Dynamic Water Reference** |
 | Water Surface | Reference to the WaterSimulation component for dynamic water interaction. |
 | Use Dynamic Water Surface | Whether to use the advanced water simulation instead of the simple wave model. |
+
+### GameManager
+
+This script controls the game flow, score tracking, and win/loss conditions.
+
+#### Parameters:
+
+| Parameter | Description |
+|-----------|-------------|
+| **Game Objects** |
+| Gazing Box | Reference to the glass box container GameObject. |
+| Boat | Reference to the boat GameObject. |
+| Water Surface | Reference to the water surface GameObject. |
+| **Game Settings** |
+| Difficulty Increase Rate | How quickly the game difficulty scales up over time. |
+| Max Difficulty | The maximum difficulty level the game can reach. |
+| Balance Threshold | Angle at which balance warnings begin to appear. |
+| Game Over Tilt Threshold | Maximum tilt angle allowed for the boat (synced with BoatBuoyancy.maxAllowedTilt). |
+| **UI References** |
+| Score Text | Text element for displaying the current score. |
+| Balance Text | Text element for displaying the current tilt angle. |
+| Tilt Timer Text | Text element for displaying the time remaining before game over when critically tilted. |
+| Game Over Panel | UI panel that appears when the game ends. |
+| Restart Button | Button for restarting the game after game over. |
+| **Audio** |
+| Water Ambient Sound | Background sound for water ambience. |
+| Balance Warning Sound | Sound played when exceeding the balance threshold. |
+| Tilt Warning Sound | Sound played when the boat is critically tilted for a concerning duration. |
+| Game Over Sound | Sound played when the game ends. |
 
 ## Shader Parameters
 
@@ -190,7 +235,8 @@ This shader creates realistic-looking water with dynamic wave patterns.
 - **Controls**: Use the mouse to tilt the gazing box. Click and drag to rotate.
 - **Objective**: Keep the boat balanced for as long as possible to achieve a high score.
 - **Challenge**: As time passes, the difficulty increases, and obstacles may appear to create disturbances.
-- **Game Over**: If the boat tilts beyond a certain threshold, the game ends.
+- **Game Over**: If the boat tilts beyond the maximum threshold for longer than the allowed duration, the game ends.
+- **Boat Direction**: The boat will automatically try to maintain its forward orientation in the specified direction, adding a stability challenge.
 
 ## Advanced Implementation Tips
 
@@ -219,6 +265,16 @@ This shader creates realistic-looking water with dynamic wave patterns.
    - Use `bounceDamping` around 0.8 to prevent excessive bouncing
    - Ensure the boat collider doesn't have sharp edges that could catch on the box
 
+3. **Direction Control Tuning**:
+   - For smoother direction maintenance, set `directionForce` between 1-3
+   - Increase `directionDamping` to prevent oscillation around the target direction
+   - For a more challenging game, disable `maintainDirection` or reduce `directionForce`
+
+4. **Stability Challenge Tuning**:
+   - Set `maxAllowedTilt` to match the `gameOverTiltThreshold` in GameManager
+   - For a more forgiving game, increase `maxTiltDuration` to 3-5 seconds
+   - For a challenging game, reduce it to 1-2 seconds
+
 ### Visual-Physics Integration
 
 1. **Synchronized Appearance**:
@@ -231,6 +287,17 @@ This shader creates realistic-looking water with dynamic wave patterns.
    - For more dramatic effects, place an empty GameObject with a particle effect system as a child of the boat
    - Trigger particle effects in BoatBuoyancy when detecting significant velocity changes
 
+### UI Enhancements
+
+1. **Tilt Warning UI**:
+   - Add a UI element for the tilt duration timer that appears only when critically tilted
+   - Use color transitions from yellow to red as the timer approaches zero
+   - Add animated effects to draw attention to the critical warning
+
+2. **Directional Indicators**:
+   - Consider adding a UI arrow showing the target direction for the boat
+   - Create a visual indicator for when the boat is fighting against the automatic direction control
+
 ## Troubleshooting
 
 - **Pink Shaders**: Make sure you're using the Universal Render Pipeline and have the correct shaders assigned.
@@ -238,6 +305,8 @@ This shader creates realistic-looking water with dynamic wave patterns.
 - **Unstable Boat**: Try increasing water drag and angular drag, or add more floating points to the boat.
 - **Performance Issues**: Reduce the grid size of the water simulation and simplify the colliders.
 - **Visuals Not Matching Physics**: Ensure the WaterSimulation is properly connected to both the shader material and BoatBuoyancy component.
+- **Boat Spinning**: If the boat spins too much, increase the `directionDamping` parameter or decrease `directionForce`.
+- **Game Ending Too Quickly**: Increase the `maxTiltDuration` to give players more time to recover from extreme tilts.
 
 ## Future Enhancements
 
