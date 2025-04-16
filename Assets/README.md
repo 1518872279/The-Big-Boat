@@ -307,6 +307,61 @@ This script controls the spawning and behavior of obstacles approaching the boat
    - Verify that damage feedback (particles, sound, camera shake) occurs
    - Confirm that the game ends when health reaches zero
 
+### Setting Up Water Synchronization
+
+To create realistic water interactions between the boat and water system, use these new synchronization components:
+
+1. **WaterSynchronizer**
+   - Add this component to your WaterSurface GameObject
+   - This script synchronizes the BoatBuoyancy effects with the water simulation and shader
+   - Ensure the component has references to:
+     - The water simulation component
+     - The boat buoyancy component
+     - The gazing box controller
+     - The renderer with the water shader
+
+2. **WaterSimulationExtension**
+   - Add this component to your WaterSurface GameObject
+   - This extension specifically targets integration with the Stylized Water 2 shader
+   - It maps physical simulation parameters to shader properties for consistent visuals
+   - Features include:
+     - Maps box tilt to wave direction
+     - Adjusts foam amount based on water activity
+     - Creates more dynamic and responsive water appearance
+
+3. **BoatBuoyancyEffects**
+   - Add this component to your Boat GameObject (same object as BoatBuoyancy)
+   - This component creates realistic water effects from boat movement:
+     - Wake trails behind the moving boat
+     - Splash effects when the boat impacts water
+     - Subtle bobbing effects when stationary
+   - For best results, create and assign a splash particle system
+
+### Integration Steps
+
+1. Set up the basic scene with GazingBox, WaterSurface, and Boat as described earlier
+2. Add the new components to their respective GameObjects
+3. Ensure proper references between components:
+   ```
+   GazingBoxController → WaterSynchronizer → WaterSimulation ← BoatBuoyancy ← BoatBuoyancyEffects
+   ```
+4. Adjust parameters to achieve your desired visual style:
+   - Increase wakeStrength for more prominent boat wakes
+   - Adjust waveHeightMultiplier to control water response to tilting
+   - Set appropriate foamMultiplier for foam generation
+
+5. Test the integration by:
+   - Tilting the gazing box and watching water flow in the appropriate direction
+   - Moving the boat to see wake effects
+   - Dropping the boat onto the water to see splash effects
+
+### Troubleshooting Water Synchronization
+
+- **No Visual Response to Tilting**: Ensure the WaterSynchronizer has the correct shader property names for your water shader
+- **Missing Wake Effects**: Check that the boat has sufficient speed and that wakeStrength isn't too low
+- **Shader Not Updating**: Verify the water renderer is properly assigned and the shader contains the expected properties
+- **NullReferenceExceptions**: Make sure all component references are properly assigned and initialized
+
 ## Shader Parameters
 
 ### SimpleURPGlass Shader

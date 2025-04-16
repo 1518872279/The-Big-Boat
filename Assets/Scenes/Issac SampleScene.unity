@@ -215,6 +215,124 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2026546402}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &182338972
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 559070523850616944, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: looping
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 569253153434320401, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_SortingOrder
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 569253153434320401, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1402041941817024963, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_Name
+      value: BigSplash
+      objectReference: {fileID: 0}
+    - target: {fileID: 1402041941817024963, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2135744781876404469, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2135744781876404469, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.62
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.06
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7671767592029940499, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7688381684192929729, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7688381684192929729, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7965660275794415636, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+        type: 3}
+      propertyPath: m_SortingOrder
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6b76a0875a63f5b49b9e65317f0605c2, type: 3}
 --- !u!1 &183947006
 GameObject:
   m_ObjectHideFlags: 0
@@ -612,9 +730,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 592392143}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: -0.37, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.1, z: 0.5}
+  m_LocalRotation: {x: -9.3132246e-10, y: -0.7071068, z: -9.3132246e-10, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: -0.16903713, z: 0}
+  m_LocalScale: {x: 0.22842857, y: 0.045685712, z: 0.22842857}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2101238567}
@@ -990,6 +1108,7 @@ GameObject:
   - component: {fileID: 940959288}
   - component: {fileID: 940959285}
   - component: {fileID: 940959284}
+  - component: {fileID: 940959292}
   - component: {fileID: 940959291}
   - component: {fileID: 940959287}
   - component: {fileID: 940959286}
@@ -1012,10 +1131,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ddbdc6aeac4a024c924f0d85dae55ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  waterLevel: -0.5
-  buoyancyForce: 0.3
-  waterDrag: 1.5
-  waterAngularDrag: 5
+  waterLevel: 0
+  buoyancyForce: 0.2
+  waterDrag: 1
+  waterAngularDrag: 3
   floatingPoints:
   - {fileID: 57061896}
   - {fileID: 1899563052}
@@ -1070,6 +1189,8 @@ MonoBehaviour:
   sinkSound: {fileID: 0}
   cameraShakeIntensity: 0.3
   cameraShakeDuration: 0.2
+  scaleCameraShakeWithDamage: 1
+  minDamageForShake: 5
   OnDamaged:
     m_PersistentCalls:
       m_Calls:
@@ -1197,9 +1318,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 940959283}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -4.83, z: 0}
-  m_LocalScale: {x: 2.5, y: 1.5, z: 5}
+  m_LocalRotation: {x: 0.013286539, y: 0, z: 0.05294414, w: 0.9985091}
+  m_LocalPosition: {x: 0, y: -1.2, z: 0}
+  m_LocalScale: {x: 3.94, y: 4, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 57061896}
@@ -1231,6 +1352,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 661ae3b875077184ea5e024fdd18e7cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &940959292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 940959283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f14d01cf6eea982429a35c235da6efe9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  boatBuoyancy: {fileID: 940959284}
+  waterSimulation: {fileID: 1207457038}
+  splashParticles: {fileID: 1250999187}
+  enableWakeEffects: 1
+  minWakeSpeed: 0.5
+  wakeStrength: 0.1
+  wakeWidth: 0.4
+  enableImpactEffects: 1
+  minImpactVelocity: 0.1
+  impactScale: 1.04
+  enableBobbingEffects: 1
+  bobbingInterval: 2
+  bobbingStrength: 0.524
+  enableSmoothing: 1
+  velocitySmoothingFactor: 2
+  effectCooldown: 0.15
 --- !u!1 &1023208337
 GameObject:
   m_ObjectHideFlags: 0
@@ -1507,7 +1656,7 @@ Transform:
   m_GameObject: {fileID: 1073534493}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -31.7}
+  m_LocalPosition: {x: 0, y: 6.96, z: -46.16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1725,8 +1874,11 @@ GameObject:
   - component: {fileID: 1207457037}
   - component: {fileID: 1207457041}
   - component: {fileID: 1207457040}
-  - component: {fileID: 1207457039}
+  - component: {fileID: 1207457044}
   - component: {fileID: 1207457038}
+  - component: {fileID: 1207457043}
+  - component: {fileID: 1207457042}
+  - component: {fileID: 1207457045}
   m_Layer: 4
   m_Name: Water
   m_TagString: Untagged
@@ -1743,9 +1895,9 @@ Transform:
   m_GameObject: {fileID: 1207457036}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.014825908, y: -0.262, z: 0.035420857}
-  m_LocalScale: {x: 0.18761726, y: 0.18761726, z: 0.18761726}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: -0.006773322, y: -0.119696565, z: 0.01618227}
+  m_LocalScale: {x: 0.114214264, y: 0.11421427, z: 0.114214286}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2101238567}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1761,34 +1913,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97129d85b32932144bf41dd1ff8629a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridSize: 40
-  meshSize: 10
+  gridSize: 30
+  meshSize: 15
   waterHeight: 0
-  springConstant: 50
+  springConstant: 30
   damping: 10
   forceMultiplier: 10
   waveSpread: 1
-  maxWaveHeight: 10
+  maxWaveHeight: 5
   updateShaderParameters: 1
-  shaderWaveStrength: 0.5
-  shaderWaveSpeed: 0.1
+  shaderWaveStrength: 1
+  shaderWaveSpeed: 0.5
   simulateInFixedUpdate: 1
   gazingBox: {fileID: 2101238563}
---- !u!114 &1207457039
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1207457036}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 52480f6baf9b7b0428c75481cb3d5a6d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  material: {fileID: 2100000, guid: d53e2a245a2e389439504202541600e4, type: 2}
-  meshFilter: {fileID: 1207457041}
-  meshRenderer: {fileID: 1207457040}
 --- !u!23 &1207457040
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1839,6 +1976,102 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1207457036}
   m_Mesh: {fileID: -8670151273213183110, guid: 1ab718e1f8990cc4982762d0d4450410, type: 3}
+--- !u!114 &1207457042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207457036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43332c88469e6014fa46dae02a7f954c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  waterSimulation: {fileID: 1207457038}
+  boatBuoyancy: {fileID: 940959284}
+  gazingBox: {fileID: 2101238563}
+  waterRenderer: {fileID: 1207457040}
+  waveHeightProperty: _WaveHeight
+  waveSpeedProperty: _WaveSpeed
+  waveDirectionProperty: _Direction
+  waveSteepnessProperty: _WaveSteepness
+  updateInterval: 0.1
+  waveHeightMultiplier: 1
+  waveSpeedMultiplier: 1
+  updateThreshold: 0.1
+  enableSmoothing: 1
+  smoothingSpeed: 10
+  smoothRotationEffects: 1
+  jitterThreshold: 0.05
+--- !u!114 &1207457043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207457036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f7a40f95c0a9e742ba540b03e192c0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  waterRenderer: {fileID: 1207457040}
+  autoFindRenderer: 1
+  waveHeightProperty: _WaveHeight
+  directionProperty: _Direction
+  steepnessProperty: _WaveSteepness
+  speedProperty: _Speed
+  enableDynamicFoam: 1
+  foamAmountProperty: _FoamBaseAmount
+  foamTilingProperty: _FoamTiling
+  foamMultiplier: 0.31
+  enableSmoothing: 1
+  smoothingSpeed: 5
+  changeThreshold: 0.01
+--- !u!114 &1207457044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207457036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52480f6baf9b7b0428c75481cb3d5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  material: {fileID: 2100000, guid: d53e2a245a2e389439504202541600e4, type: 2}
+  meshFilter: {fileID: 1207457041}
+  meshRenderer: {fileID: 1207457040}
+--- !u!64 &1207457045
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207457036}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -8670151273213183110, guid: 1ab718e1f8990cc4982762d0d4450410, type: 3}
+--- !u!198 &1250999187 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 559070523850616944, guid: 6b76a0875a63f5b49b9e65317f0605c2,
+    type: 3}
+  m_PrefabInstance: {fileID: 182338972}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1309410723
 GameObject:
   m_ObjectHideFlags: 0
@@ -2147,8 +2380,8 @@ Transform:
   m_GameObject: {fileID: 1581366328}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.174, z: 0}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
+  m_LocalPosition: {x: 0, y: -0.07949314, z: 0}
+  m_LocalScale: {x: 0.045685712, y: 0.045685712, z: 0.045685716}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2101238567}
@@ -2200,7 +2433,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1608998077
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2711,6 +2944,8 @@ MonoBehaviour:
   sinkSound: {fileID: 0}
   cameraShakeIntensity: 0.3
   cameraShakeDuration: 0.2
+  scaleCameraShakeWithDamage: 1
+  minDamageForShake: 5
   OnDamaged:
     m_PersistentCalls:
       m_Calls:
@@ -2798,6 +3033,8 @@ MonoBehaviour:
   rotationSensitivity: 0.1
   maxTilt: 50
   returnSpeed: 2
+  enableSmoothing: 1
+  responsiveness: 10
   boatLayerName: Boat
   boxColliderLayerName: BoxBoundary
 --- !u!65 &2101238564
@@ -2881,12 +3118,12 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 15.99, y: 15.99, z: 15.99}
+  m_LocalScale: {x: 35, y: 35, z: 35}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 1207457037}
-  - {fileID: 592392144}
   - {fileID: 1581366332}
+  - {fileID: 592392144}
+  - {fileID: 1207457037}
   - {fileID: 1349662219}
   - {fileID: 662343679}
   - {fileID: 210237517}
@@ -2908,3 +3145,4 @@ SceneRoots:
   - {fileID: 940959290}
   - {fileID: 2101238567}
   - {fileID: 416760941}
+  - {fileID: 182338972}

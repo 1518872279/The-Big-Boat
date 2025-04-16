@@ -3,10 +3,18 @@ using UnityEngine;
 public class GazingBoxController : MonoBehaviour
 {
     [Header("Control Settings")]
-    public float rotationSensitivity = 0.1f; // How much the box rotates per pixel of mouse movement
+    public float rotationSensitivity = 0.25f; // Increased from 0.1f for more responsive movement
     public float maxTilt = 30.0f;            // Maximum allowed tilt (degrees)
     public float returnSpeed = 2.0f;         // Speed at which the box returns to neutral when not dragging
 
+    [Header("Input Settings")]
+    [Tooltip("Enable minimal smoothing to reduce jitter")]
+    public bool enableSmoothing = true;
+    
+    [Tooltip("How quickly the box responds to input (higher = more responsive)")]
+    [Range(5f, 20f)]
+    public float responsiveness = 10f;
+    
     [Header("Collision Settings")]
     public string boatLayerName = "Boat";    // Layer name for the boat
     public string boxColliderLayerName = "BoxBoundary"; // Layer name for box colliders
@@ -89,11 +97,12 @@ public class GazingBoxController : MonoBehaviour
         {
             Vector3 currentMousePosition = Input.mousePosition;
             Vector3 mouseDelta = currentMousePosition - previousMousePosition;
-
-            // Calculate rotation offsets based on mouse movement
-            float tiltAroundX = mouseDelta.y * rotationSensitivity;  // Forward/backward tilt
-            float tiltAroundZ = -mouseDelta.x * rotationSensitivity; // Side-to-side tilt
-
+            
+            // Simple immediate rotation based on mouse movement
+            float tiltAroundX = mouseDelta.y * rotationSensitivity;
+            float tiltAroundZ = -mouseDelta.x * rotationSensitivity;
+            
+            // Apply to target rotation directly
             targetRotationOffset.x += tiltAroundX;
             targetRotationOffset.z += tiltAroundZ;
 
@@ -109,10 +118,19 @@ public class GazingBoxController : MonoBehaviour
             targetRotationOffset = Vector3.Lerp(targetRotationOffset, Vector3.zero, Time.deltaTime * returnSpeed);
         }
 
-        // Apply the rotation offset
+        // Apply the rotation with minimal smoothing
         Quaternion rotationOffset = Quaternion.Euler(targetRotationOffset);
         Quaternion targetRotation = neutralRotation * rotationOffset;
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 5.0f);
+        
+        // Apply rotation with optional smoothing
+        if (enableSmoothing)
+        {
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * responsiveness);
+        }
+        else
+        {
+            transform.rotation = targetRotation; // Direct control without smoothing
+        }
     }
     
     public void ResetRotation()

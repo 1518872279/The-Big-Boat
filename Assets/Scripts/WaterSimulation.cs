@@ -8,11 +8,11 @@ public class WaterSimulation : MonoBehaviour
     public float waterHeight = 0f;           // Base water height (rest position)
     
     [Header("Wave Simulation")]
-    public float springConstant = 50f;       // Stiffness (k)
-    public float damping = 5f;               // Damping factor (c)
-    public float forceMultiplier = 2f;       // Multiplier for external forces
-    public float waveSpread = 0.1f;          // How much waves affect neighboring vertices
-    public float maxWaveHeight = 0.5f;       // Maximum displacement for any vertex
+    public float springConstant = 45f;       // Reduced stiffness from 50f for more stability
+    public float damping = 6.5f;            // Increased damping from 5f to reduce oscillation
+    public float forceMultiplier = 1.5f;     // Reduced from 2f for subtler effects
+    public float waveSpread = 0.08f;         // Reduced from 0.1f for less chaotic wave propagation
+    public float maxWaveHeight = 0.4f;       // Reduced from 0.5f for less extreme waves
     
     [Header("Visual Shader Settings")]
     public bool updateShaderParameters = true;   // Whether to update the shader based on simulation
@@ -192,6 +192,12 @@ public class WaterSimulation : MonoBehaviour
     {
         Vector3 externalForce = CalculateExternalForce();
         
+        // Filter out very small forces to reduce jitter
+        if (externalForce.magnitude < 0.15f)
+        {
+            externalForce = Vector3.zero;
+        }
+        
         // First pass: calculate accelerations
         for (int i = 0; i < vertices.Length; i++)
         {
@@ -207,8 +213,8 @@ public class WaterSimulation : MonoBehaviour
             if (gazingBox != null)
             {
                 Vector3 localPos = transform.InverseTransformPoint(originalVertices[i]);
-                float xTiltEffect = externalForce.z * localPos.x * 0.1f;
-                float zTiltEffect = externalForce.x * localPos.z * 0.1f;
+                float xTiltEffect = externalForce.z * localPos.x * 0.08f; // Reduced from 0.1f
+                float zTiltEffect = externalForce.x * localPos.z * 0.08f; // Reduced from 0.1f
                 vertexForce += xTiltEffect + zTiltEffect;
             }
             
@@ -376,10 +382,10 @@ public class WaterSimulation : MonoBehaviour
         Vector3 tiltForceDirection = Vector3.ProjectOnPlane(tiltDirection, Vector3.up).normalized;
         
         // Only apply tilt force if the angle is significant
-        if (tiltAngle > 1f)
+        if (tiltAngle > 2.5f) // Increased from 1f to ignore very slight tilts
         {
-            // Force increases with tilt angle
-            float tiltForceMagnitude = Mathf.Sin(tiltAngle * Mathf.Deg2Rad) * 9.8f; // Gravity component
+            // Force increases with tilt angle, but with a gentler curve
+            float tiltForceMagnitude = Mathf.Pow(Mathf.Sin(tiltAngle * Mathf.Deg2Rad), 1.1f) * 8.5f; // Reduced from 9.8f for less intensity
             force += new Vector3(
                 tiltForceDirection.x * tiltForceMagnitude,
                 0,
@@ -387,11 +393,18 @@ public class WaterSimulation : MonoBehaviour
             );
         }
         
-        // Angular velocity contributes to sloshing force
+        // Reduce angular velocity contribution to force with smoothing
+        Vector3 smoothedAngularVelocity = Vector3.Lerp(
+            Vector3.zero, 
+            boxAngularVelocity, 
+            Mathf.Clamp01(boxAngularVelocity.magnitude / 5.0f)  // Apply non-linear smoothing
+        );
+        
+        // Add dampened angular velocity to force
         force += new Vector3(
-            boxAngularVelocity.x * 0.5f,
-            boxAngularVelocity.y * 0.1f,
-            boxAngularVelocity.z * 0.5f
+            smoothedAngularVelocity.x * 0.4f,  // Reduced from 0.5f
+            smoothedAngularVelocity.y * 0.08f, // Reduced from 0.1f
+            smoothedAngularVelocity.z * 0.4f   // Reduced from 0.5f
         );
         
         return force;
@@ -512,6 +525,12 @@ public class WaterSimulation : MonoBehaviour
             return;
         }
         
+        // Filter out extremely small forces
+        if (Mathf.Abs(force) < 0.05f)
+        {
+            return;
+        }
+        
         // Apply force to vertices within radius
         for (int i = 0; i < vertices.Length; i++)
         {
@@ -523,8 +542,8 @@ public class WaterSimulation : MonoBehaviour
             
             if (distance <= radius)
             {
-                // Falloff with distance
-                float falloff = 1f - (distance / radius);
+                // Falloff with distance using smoother curve
+                float falloff = Mathf.Pow(1f - (distance / radius), 1.2f);
                 velocities[i] += force * falloff;
             }
         }
