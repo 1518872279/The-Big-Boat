@@ -188,6 +188,125 @@ This script controls the game flow, score tracking, and win/loss conditions.
 | Tilt Warning Sound | Sound played when the boat is critically tilted for a concerning duration. |
 | Game Over Sound | Sound played when the game ends. |
 
+### BoatHealth
+
+This script manages the boat's health, damage handling, and related effects.
+
+#### Parameters:
+
+| Parameter | Description |
+|-----------|-------------|
+| **Health Settings** |
+| Max Health | Maximum health value for the boat. |
+| Invulnerability Time | Time in seconds the boat remains invulnerable after taking damage. |
+| **Damage Feedback** |
+| Damage Effect Prefab | Particle effect spawned when the boat takes damage. |
+| Damage Sounds | Array of audio clips played randomly when damage is taken. |
+| Sink Sound | Sound played when the boat's health reaches zero. |
+| Camera Shake Intensity | How strongly the camera shakes when taking damage. |
+| Camera Shake Duration | How long the camera shakes when taking damage. |
+| **Events** |
+| On Health Changed | Event triggered when health value changes. Provides current and max health values. |
+| On Damage Taken | Event triggered when the boat takes damage. |
+| On Healed | Event triggered when the boat is healed. |
+| On Sunk | Event triggered when health reaches zero. |
+
+### ObstacleManager
+
+This script controls the spawning and behavior of obstacles approaching the boat.
+
+#### Parameters:
+
+| Parameter | Description |
+|-----------|-------------|
+| **Obstacle Prefabs** |
+| Obstacle Prefabs | Array of different obstacle types that can be spawned. |
+| **Spawn Settings** |
+| Spawn Distance From Box | Distance from the box edge where obstacles will spawn. |
+| Min/Max Time Between Spawns | Range of time between spawning new obstacles. |
+| Max Concurrent Obstacles | Maximum number of obstacles active at once. |
+| Difficulty Scaling | How spawn frequency increases with game score. Higher values create faster difficulty progression. |
+| Min/Max Spawn Height | Vertical range above water where obstacles can spawn. |
+| **Obstacle Movement** |
+| Min/Max Move Speed | Range of movement speeds for obstacles. |
+| Randomize Rotation | Whether obstacles should rotate as they move. |
+| Rotation Speed | How quickly obstacles rotate when rotating is enabled. |
+| **References** |
+| Gazing Box | Reference to the box containing the boat and water. |
+| Water Surface | Reference to the water simulation for height-based spawning. |
+
+## Additional Implementation Instructions
+
+### Setting Up the Health System
+
+1. Add the `BoatHealth.cs` script to your boat GameObject.
+2. Configure the health settings:
+   - Set `Max Health` to your desired value (default: 3)
+   - Set `Invulnerability Time` to provide brief protection after taking damage (default: 1.5 seconds)
+3. Set up damage feedback:
+   - Assign a particle effect prefab to `Damage Effect Prefab` for visual feedback
+   - Add audio clips to the `Damage Sounds` array for randomized damage sounds
+   - Assign an audio clip to `Sink Sound` for when the boat sinks
+   - Set appropriate values for `Camera Shake Intensity` (0.5-1.0 recommended) and `Camera Shake Duration` (0.3-0.5 seconds recommended)
+4. Connect the events:
+   - Connect the `On Sunk` event to the GameManager's `GameOver` method
+   - Wire up UI elements to display health (optional)
+5. Add a `CameraShaker` component to your main camera:
+   - The BoatHealth script will automatically find and use it for damage feedback
+
+### Setting Up the Obstacle System
+
+1. Create a new empty GameObject and name it "ObstacleManager"
+2. Add the `ObstacleManager.cs` script to this GameObject
+3. Create obstacle prefabs:
+   - Design at least 3-5 different obstacle types (e.g., rocks, icebergs, sea monsters)
+   - Make sure each prefab has a collider component
+   - Create and assign the prefabs to the `Obstacle Prefabs` array in the ObstacleManager
+4. Configure spawn settings:
+   - Set `Spawn Distance From Box` to determine how far away obstacles appear (5-10 units recommended)
+   - Adjust `Min Time Between Spawns` and `Max Time Between Spawns` to control frequency
+   - Set `Max Concurrent Obstacles` based on desired difficulty (3-7 recommended)
+   - Configure `Difficulty Scaling` to increase challenge over time (0.1-0.3 recommended)
+5. Configure movement settings:
+   - Set appropriate speed ranges with `Min/Max Move Speed`
+   - Enable `Randomize Rotation` for more variation
+   - Adjust `Rotation Speed` for spinning obstacles (20-40 recommended)
+6. Set up references:
+   - Assign your GazingBox GameObject to the `Gazing Box` field
+   - Assign your WaterSimulation component to the `Water Surface` field
+7. Integrate with GameManager:
+   - Ensure your GameManager has a reference to the ObstacleManager
+   - The GameManager will automatically call StartSpawning and StopSpawning
+
+### Connecting Health and Obstacle Systems
+
+1. Create an `ObstacleBehavior.cs` script and attach it to your obstacle prefabs:
+   - This script should handle collision detection with the boat
+   - Configure it to call `TakeDamage()` on the BoatHealth component when collisions occur
+2. Implement damage logic:
+   ```csharp
+   void OnCollisionEnter(Collision collision)
+   {
+       if (collision.gameObject.CompareTag("Boat"))
+       {
+           // Get the boat health component
+           BoatHealth boatHealth = collision.gameObject.GetComponent<BoatHealth>();
+           if (boatHealth != null)
+           {
+               // Apply damage to the boat (adjust damage amount as needed)
+               boatHealth.TakeDamage(1);
+               
+               // Destroy this obstacle or apply any other effects
+               Destroy(gameObject);
+           }
+       }
+   }
+   ```
+3. Test the interaction:
+   - Make sure obstacles correctly damage the boat when they collide
+   - Verify that damage feedback (particles, sound, camera shake) occurs
+   - Confirm that the game ends when health reaches zero
+
 ## Shader Parameters
 
 ### SimpleURPGlass Shader
@@ -307,6 +426,18 @@ This shader creates realistic-looking water with dynamic wave patterns.
 - **Visuals Not Matching Physics**: Ensure the WaterSimulation is properly connected to both the shader material and BoatBuoyancy component.
 - **Boat Spinning**: If the boat spins too much, increase the `directionDamping` parameter or decrease `directionForce`.
 - **Game Ending Too Quickly**: Increase the `maxTiltDuration` to give players more time to recover from extreme tilts.
+- **Script Compile Errors**: Check for syntax errors like missing or extra curly braces. Common errors include:
+  - Extra closing braces at the end of script files
+  - Missing semicolons after statements
+  - Undefined references to components or variables
+  - Incorrect namespace usage
+- **Obstacles Not Affecting Boat**: If obstacles don't damage the boat when colliding, check these common issues:
+  - Verify the boat GameObject has a tag of either "Player" or "Boat"
+  - Ensure the boat has the BoatHealth component attached
+  - Check Physics settings in Edit > Project Settings > Physics and ensure relevant layers can collide
+  - Verify both objects have non-trigger colliders (or if using triggers, both objects have Rigidbody components)
+  - Make sure obstacles have the isHostile property set to true
+  - Check that damage values (minDamage and maxDamage) are not set too low
 
 ## Future Enhancements
 

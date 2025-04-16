@@ -1,290 +1,266 @@
+using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+using UnityEngine.SceneManagement;
+using UnityEngine.Events;
 
 public class GameManager : MonoBehaviour
 {
-    [Header("Game Objects")]
-    public GameObject gazingBox;
-    public GameObject boat;
-    public GameObject waterSurface;
+    [Header("Game State")]
+    [SerializeField] private bool gameActive = false;
+    [SerializeField] private bool gamePaused = false;
+    [SerializeField] private float gameTime = 0f;
+    [SerializeField] private float gameScore = 0f;
     
     [Header("Game Settings")]
-    public float difficultyIncreaseRate = 0.1f;
-    public float maxDifficulty = 3.0f;
-    public float balanceThreshold = 30.0f;
-    public float gameOverTiltThreshold = 60.0f;
+    [SerializeField] private int targetFrameRate = 60;
+    [SerializeField] private float startDelay = 3f;
+    [SerializeField] private float gameOverDelay = 2f;
+    
+    [Header("References")]
+    [SerializeField] private ObstacleManager obstacleManager;
+    [SerializeField] private BoatHealth boatHealth;
+    [SerializeField] private Transform boxTransform;
     
     [Header("UI References")]
-    public TextMeshProUGUI scoreText;
-    public TextMeshProUGUI balanceText;
-    public TextMeshProUGUI tiltTimerText;  // Optional - displays how long boat has been over-tilted
-    public GameObject gameOverPanel;
-    public Button restartButton;
+    [SerializeField] private GameObject mainMenuUI;
+    [SerializeField] private GameObject gameUI;
+    [SerializeField] private GameObject pauseMenuUI;
+    [SerializeField] private GameObject gameOverUI;
     
-    [Header("Audio")]
-    public AudioClip waterAmbientSound;
-    public AudioClip balanceWarningSound;
-    public AudioClip gameOverSound;
-    public AudioClip tiltWarningSound;     // Sound played when boat is critically tilted
+    [Header("Events")]
+    public UnityEvent OnGameStart;
+    public UnityEvent OnGameOver;
+    public UnityEvent OnGamePaused;
+    public UnityEvent OnGameResumed;
+    public UnityEvent<float> OnScoreChanged;
     
-    // Private fields
-    private float currentScore = 0f;
-    private float currentDifficulty = 1f;
-    private float gameTimer = 0f;
-    private bool isGameOver = false;
-    private AudioSource audioSource;
-    private bool isBalanceWarning = false;
-    private bool isCriticalTiltWarning = false;
+    // Singleton pattern
+    public static GameManager Instance { get; private set; }
     
-    // Components
-    private GazingBoxController boxController;
-    private BoatBuoyancy boatBuoyancy;
+    // Properties
+    public bool IsGameActive => gameActive;
+    public bool IsGamePaused => gamePaused;
+    public float GameTime => gameTime;
+    public float GameScore => gameScore;
+    
+    // Public methods for other scripts to check game state
+    public bool IsGameOver()
+    {
+        return !gameActive;
+    }
+    
+    public float GetCurrentScore()
+    {
+        return gameScore;
+    }
+    
+    private void Awake()
+    {
+        // Singleton setup
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+        
+        // Set application target frame rate
+        Application.targetFrameRate = targetFrameRate;
+    }
     
     private void Start()
     {
-        // Get references to components
-        boxController = gazingBox.GetComponent<GazingBoxController>();
-        boatBuoyancy = boat.GetComponent<BoatBuoyancy>();
-        
-        // Subscribe to boat stability event
-        if (boatBuoyancy != null)
-        {
-            boatBuoyancy.OnMaxTiltExceeded += HandleBoatMaxTilt;
-        }
-        
-        // Setup audio
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-        }
-        
-        if (waterAmbientSound != null)
-        {
-            audioSource.clip = waterAmbientSound;
-            audioSource.loop = true;
-            audioSource.Play();
-        }
-        
-        // Setup UI
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
-        
-        if (restartButton != null)
-        {
-            restartButton.onClick.AddListener(RestartGame);
-        }
-        
-        // Make sure the boat's tilt settings match the game settings
-        if (boatBuoyancy != null)
-        {
-            boatBuoyancy.maxAllowedTilt = gameOverTiltThreshold;
-        }
-        
-        UpdateUI();
-    }
-    
-    private void OnDestroy()
-    {
-        // Unsubscribe from events to prevent memory leaks
-        if (boatBuoyancy != null)
-        {
-            boatBuoyancy.OnMaxTiltExceeded -= HandleBoatMaxTilt;
-        }
+        // Find references if not assigned
+        if (obstacleManager == null)
+            obstacleManager = FindObjectOfType<ObstacleManager>();
+            
+        if (boatHealth == null)
+            boatHealth = FindObjectOfType<BoatHealth>();
+            
+        // Initialize UI state
+        ShowMainMenu();
     }
     
     private void Update()
     {
-        if (isGameOver)
-            return;
-        
-        // Increase game timer and score
-        gameTimer += Time.deltaTime;
-        currentScore += Time.deltaTime * currentDifficulty;
-        
-        // Gradually increase difficulty
-        if (currentDifficulty < maxDifficulty)
+        // Update game timer when active
+        if (gameActive && !gamePaused)
         {
-            currentDifficulty += difficultyIncreaseRate * Time.deltaTime;
-        }
-        
-        // Check boat balance
-        CheckBoatBalance();
-        
-        // Update UI
-        UpdateUI();
-    }
-    
-    private void CheckBoatBalance()
-    {
-        if (boat == null || boatBuoyancy == null)
-            return;
+            gameTime += Time.deltaTime;
             
-        // Get the current tilt angle from the BoatBuoyancy component
-        float tiltAngle = boatBuoyancy.GetCurrentTiltAngle();
-        float overTiltTime = boatBuoyancy.GetOverTiltTime();
-        
-        // Show warning when the boat is tilting beyond the threshold
-        if (tiltAngle > balanceThreshold && !isBalanceWarning)
-        {
-            isBalanceWarning = true;
-            
-            // Play warning sound
-            if (balanceWarningSound != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(balanceWarningSound);
-            }
-        }
-        else if (tiltAngle <= balanceThreshold)
-        {
-            isBalanceWarning = false;
+            // Update score based on time (can be modified for more complex scoring)
+            UpdateScore(gameTime);
         }
         
-        // Critical tilt warning when nearing the max allowed duration
-        if (tiltAngle > gameOverTiltThreshold)
+        // Handle pause input
+        if (Input.GetKeyDown(KeyCode.Escape) && gameActive)
         {
-            // Play critical warning sound if we're halfway to the time limit
-            if (overTiltTime > boatBuoyancy.maxTiltDuration * 0.5f && !isCriticalTiltWarning)
-            {
-                isCriticalTiltWarning = true;
-                
-                if (tiltWarningSound != null && audioSource != null)
-                {
-                    audioSource.PlayOneShot(tiltWarningSound);
-                }
-            }
-        }
-        else
-        {
-            isCriticalTiltWarning = false;
+            TogglePause();
         }
     }
     
-    private void HandleBoatMaxTilt()
+    public void StartGame()
     {
-        // This method is called when the boat has been tilted for too long
-        if (!isGameOver)
-        {
-            GameOver();
-        }
+        StartCoroutine(StartGameRoutine());
     }
     
-    private void UpdateUI()
+    private IEnumerator StartGameRoutine()
     {
-        if (scoreText != null)
+        // Reset game state
+        gameTime = 0f;
+        gameScore = 0f;
+        
+        // Show game UI
+        ShowGameUI();
+        
+        // Reset boat health
+        if (boatHealth != null)
         {
-            scoreText.text = "Score: " + Mathf.FloorToInt(currentScore).ToString();
+            boatHealth.ResetHealth();
         }
         
-        if (balanceText != null && boatBuoyancy != null)
+        // Wait for start delay
+        yield return new WaitForSeconds(startDelay);
+        
+        // Activate game
+        gameActive = true;
+        
+        // Start obstacle spawning
+        if (obstacleManager != null)
         {
-            float tiltAngle = boatBuoyancy.GetCurrentTiltAngle();
-            balanceText.text = "Balance: " + Mathf.FloorToInt(tiltAngle).ToString() + "°";
-            
-            // Change color based on tilt
-            if (tiltAngle > gameOverTiltThreshold)
-            {
-                balanceText.color = Color.red;
-            }
-            else if (tiltAngle > balanceThreshold)
-            {
-                balanceText.color = new Color(1f, 0.5f, 0f); // Orange
-            }
-            else
-            {
-                balanceText.color = Color.white;
-            }
+            obstacleManager.StartSpawning();
         }
         
-        // Update tilt timer text if available
-        if (tiltTimerText != null && boatBuoyancy != null && boatBuoyancy.GetCurrentTiltAngle() > gameOverTiltThreshold)
-        {
-            float remainingTime = boatBuoyancy.maxTiltDuration - boatBuoyancy.GetOverTiltTime();
-            
-            if (remainingTime > 0)
-            {
-                tiltTimerText.gameObject.SetActive(true);
-                tiltTimerText.text = "Stabilize: " + remainingTime.ToString("F1") + "s";
-                
-                // Color the text based on urgency
-                float t = remainingTime / boatBuoyancy.maxTiltDuration;
-                tiltTimerText.color = Color.Lerp(Color.red, Color.yellow, t);
-            }
-        }
-        else if (tiltTimerText != null)
-        {
-            tiltTimerText.gameObject.SetActive(false);
-        }
+        // Invoke game start event
+        OnGameStart?.Invoke();
     }
     
-    private void GameOver()
+    public void GameOver()
     {
-        isGameOver = true;
+        StartCoroutine(GameOverRoutine());
+    }
+    
+    private IEnumerator GameOverRoutine()
+    {
+        // Stop game activity
+        gameActive = false;
         
-        // Play game over sound
-        if (gameOverSound != null && audioSource != null)
+        // Stop obstacle spawning
+        if (obstacleManager != null)
         {
-            audioSource.Stop();
-            audioSource.PlayOneShot(gameOverSound);
+            obstacleManager.StopSpawning();
         }
+        
+        // Wait for delay before showing game over UI
+        yield return new WaitForSeconds(gameOverDelay);
         
         // Show game over UI
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(true);
-        }
+        ShowGameOverUI();
         
-        // Disable controls
-        if (boxController != null)
-        {
-            boxController.enabled = false;
-        }
+        // Invoke game over event
+        OnGameOver?.Invoke();
     }
     
     public void RestartGame()
     {
-        isGameOver = false;
-        currentScore = 0f;
-        currentDifficulty = 1f;
-        gameTimer = 0f;
-        isBalanceWarning = false;
-        isCriticalTiltWarning = false;
-        
-        // Hide game over UI
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
-        
-        // Reset boat position
-        if (boatBuoyancy != null)
-        {
-            boatBuoyancy.ResetBoat();
-        }
-        
-        // Reset box controller
-        if (boxController != null)
-        {
-            boxController.enabled = true;
-            boxController.ResetRotation();
-        }
-        
-        // Restart ambient sound
-        if (waterAmbientSound != null && audioSource != null)
-        {
-            audioSource.clip = waterAmbientSound;
-            audioSource.loop = true;
-            audioSource.Play();
-        }
-        
-        UpdateUI();
+        // Reload current scene
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
     
-    public bool IsGameOver()
+    public void QuitGame()
     {
-        return isGameOver;
+        #if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+        #else
+        Application.Quit();
+        #endif
+    }
+    
+    public void TogglePause()
+    {
+        if (gamePaused)
+            ResumeGame();
+        else
+            PauseGame();
+    }
+    
+    public void PauseGame()
+    {
+        gamePaused = true;
+        Time.timeScale = 0f;
+        
+        // Show pause menu
+        ShowPauseMenu();
+        
+        // Invoke pause event
+        OnGamePaused?.Invoke();
+    }
+    
+    public void ResumeGame()
+    {
+        gamePaused = false;
+        Time.timeScale = 1f;
+        
+        // Show game UI
+        ShowGameUI();
+        
+        // Invoke resume event
+        OnGameResumed?.Invoke();
+    }
+    
+    public void AddScore(float points)
+    {
+        if (!gameActive)
+            return;
+            
+        gameScore += points;
+        OnScoreChanged?.Invoke(gameScore);
+    }
+    
+    private void UpdateScore(float currentTime)
+    {
+        // Simple scoring based on survival time
+        float newScore = Mathf.Floor(currentTime * 10);
+        
+        if (newScore != gameScore)
+        {
+            gameScore = newScore;
+            OnScoreChanged?.Invoke(gameScore);
+        }
+    }
+    
+    // UI Management
+    private void ShowMainMenu()
+    {
+        if (mainMenuUI != null) mainMenuUI.SetActive(true);
+        if (gameUI != null) gameUI.SetActive(false);
+        if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+        if (gameOverUI != null) gameOverUI.SetActive(false);
+    }
+    
+    private void ShowGameUI()
+    {
+        if (mainMenuUI != null) mainMenuUI.SetActive(false);
+        if (gameUI != null) gameUI.SetActive(true);
+        if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+        if (gameOverUI != null) gameOverUI.SetActive(false);
+    }
+    
+    private void ShowPauseMenu()
+    {
+        if (pauseMenuUI != null) pauseMenuUI.SetActive(true);
+        if (gameUI != null) gameUI.SetActive(false);
+    }
+    
+    private void ShowGameOverUI()
+    {
+        if (mainMenuUI != null) mainMenuUI.SetActive(false);
+        if (gameUI != null) gameUI.SetActive(false);
+        if (pauseMenuUI != null) pauseMenuUI.SetActive(false);
+        if (gameOverUI != null) gameOverUI.SetActive(true);
     }
 } 
