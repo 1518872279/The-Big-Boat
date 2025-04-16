@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Boat
   - Obstacle
+  - BoxWall
   layers:
   - Default
   - TransparentFX
