@@ -283,7 +283,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   obstaclePrefabs:
   - {fileID: 1646968886842663081, guid: 6b8743cad93d46b42a66a8ca459ff2dc, type: 3}
-  - {fileID: 5301657370935520130, guid: 1e35a1143d44533468e29d976cdf1617, type: 3}
   spawnDistanceFromBox: 10
   minTimeBetweenSpawns: 3
   maxTimeBetweenSpawns: 10
