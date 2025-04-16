@@ -400,6 +400,13 @@ public class WaterSimulation : MonoBehaviour
     // Public method to sample water height at a world position
     public float GetWaterHeightAt(Vector3 worldPosition)
     {
+        // Ensure the mesh is properly initialized
+        if (vertices == null || vertices.Length == 0)
+        {
+            // Return base water height if mesh not initialized yet
+            return waterHeight;
+        }
+        
         // Convert world position to local position on the water plane
         Vector3 localPos = transform.InverseTransformPoint(worldPosition);
         
@@ -427,6 +434,13 @@ public class WaterSimulation : MonoBehaviour
         int bottomRight = bottomLeft + 1;
         int topLeft = (gridZ + 1) * (gridSize + 1) + gridX;
         int topRight = topLeft + 1;
+        
+        // Verify indices are within bounds
+        if (bottomLeft >= vertices.Length || bottomRight >= vertices.Length || 
+            topLeft >= vertices.Length || topRight >= vertices.Length)
+        {
+            return waterHeight; // Return base water height if indices are invalid
+        }
         
         // Calculate weights for bilinear interpolation
         float cellX = (normalizedX * gridSize) - gridX;
@@ -544,18 +558,35 @@ public class WaterSimulation : MonoBehaviour
     // Update method that integrates with BoatBuoyancy
     public void UpdateBoatBuoyancy(BoatBuoyancy boat)
     {
-        if (boat != null && boat.floatingPoints != null)
+        if (boat == null)
         {
-            foreach (Transform floatPoint in boat.floatingPoints)
-            {
-                // Get water height at each floating point
-                float waterHeightAtPoint = GetWaterHeightAt(floatPoint.position);
-                float pointHeight = floatPoint.position.y;
-                
-                // Update the wave height in the BoatBuoyancy script
-                // This assumes the boat is checking these points against waterLevel + waveHeight
-                boat.waterLevel = waterHeightAtPoint;
-            }
+            Debug.LogWarning("UpdateBoatBuoyancy called with null boat reference");
+            return;
+        }
+        
+        // Ensure water simulation is properly initialized
+        if (vertices == null || vertices.Length == 0)
+        {
+            Debug.LogWarning("Water simulation not fully initialized yet. Skipping boat update.");
+            return;
+        }
+        
+        if (boat.floatingPoints == null)
+        {
+            Debug.LogWarning("Boat has no floating points defined");
+            return;
+        }
+        
+        foreach (Transform floatPoint in boat.floatingPoints)
+        {
+            if (floatPoint == null) continue;
+            
+            // Get water height at each floating point
+            float waterHeightAtPoint = GetWaterHeightAt(floatPoint.position);
+            
+            // Update the wave height in the BoatBuoyancy script
+            // This assumes the boat is checking these points against waterLevel + waveHeight
+            boat.waterLevel = waterHeightAtPoint;
         }
     }
     

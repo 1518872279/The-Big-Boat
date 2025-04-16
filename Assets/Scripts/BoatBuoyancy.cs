@@ -82,8 +82,20 @@ public class BoatBuoyancy : MonoBehaviour
         // Register the boat with the water simulation for efficient updates
         if (waterSurface != null && useDynamicWaterSurface)
         {
-            // Initial registration
-            waterSurface.UpdateBoatBuoyancy(this);
+            try
+            {
+                // Initial registration - wrapped in try/catch to prevent startup errors
+                waterSurface.UpdateBoatBuoyancy(this);
+            }
+            catch (System.NullReferenceException e)
+            {
+                Debug.LogWarning("Error registering boat with water surface: " + e.Message);
+                // Continue without crashing - we'll try again during gameplay
+            }
+        }
+        else if (useDynamicWaterSurface && waterSurface == null)
+        {
+            Debug.LogWarning("BoatBuoyancy has useDynamicWaterSurface set to true but no WaterSurface assigned!");
         }
         
         // Normalize target direction to ensure consistent behavior

@@ -438,6 +438,11 @@ This shader creates realistic-looking water with dynamic wave patterns.
   - Verify both objects have non-trigger colliders (or if using triggers, both objects have Rigidbody components)
   - Make sure obstacles have the isHostile property set to true
   - Check that damage values (minDamage and maxDamage) are not set too low
+- **Water Simulation Initialization Errors**: If you see "Water simulation not fully initialized yet" warnings:
+  1. Add the `ComponentInitializer` script to an empty GameObject in your scene
+  2. Add the `BoatBuoyancyPatch` script to the same GameObject as your BoatBuoyancy component
+  3. Set references in the ComponentInitializer or enable autoFindComponents
+  4. This fixes timing issues between BoatBuoyancy and WaterSimulation initialization
 
 ## Future Enhancements
 
