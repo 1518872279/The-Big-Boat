@@ -224,6 +224,18 @@ public class BoatBuoyancy : MonoBehaviour
                     }
                 }
             }
+            else if (pointsHeightFromWater[i] > 0 && pointsHeightFromWater[i] < 2.0f) 
+            {
+                // If point is slightly above water, apply a downward force to help it return to water
+                // This prevents the boat from floating in air at extreme tilt angles
+                float distanceAboveWater = pointsHeightFromWater[i];
+                float pullDownFactor = 1.0f - (distanceAboveWater / 2.0f); // Linearly decrease with height
+                if (pullDownFactor > 0) 
+                {
+                    Vector3 downForce = -waterNormal * buoyancyForce * pullDownFactor * 0.8f;
+                    rb.AddForceAtPosition(downForce, floatingPoints[i].position);
+                }
+            }
         }
         
         // Apply drag when in water
@@ -241,6 +253,42 @@ public class BoatBuoyancy : MonoBehaviour
             // Reset air physics when in water
             rb.drag = 0.01f; // Low drag in water (handled manually via waterDrag)
             rb.angularDrag = 0.01f; // Low angular drag in water (handled manually)
+        }
+        else
+        {
+            // If no points are underwater, apply a strong downward force to pull the boat back to water
+            // This prevents the boat from floating in air completely
+            Vector3 boatPosition = transform.position;
+            float nearestWaterHeight;
+            
+            if (waterSurface != null && useDynamicWaterSurface)
+            {
+                nearestWaterHeight = waterSurface.GetWaterHeightAt(new Vector3(boatPosition.x, 0, boatPosition.z));
+            }
+            else
+            {
+                nearestWaterHeight = waterLevel + CalculateWaveHeight(new Vector3(boatPosition.x, 0, boatPosition.z));
+            }
+            
+            // Calculate how high the boat is above water
+            float heightAboveWater = transform.position.y - nearestWaterHeight;
+            
+            if (heightAboveWater > 0)
+            {
+                // Apply stronger gravity the higher the boat is
+                float gravityMultiplier = 1.0f + heightAboveWater * 0.5f;
+                gravityMultiplier = Mathf.Clamp(gravityMultiplier, 1.0f, 5.0f);
+                
+                // Apply increased gravity force
+                rb.AddForce(Physics.gravity * gravityMultiplier * rb.mass, ForceMode.Acceleration);
+                
+                // For very high boats, apply a direct downward force
+                if (heightAboveWater > 1.5f)
+                {
+                    Vector3 pullDownForce = Vector3.down * buoyancyForce * heightAboveWater * 0.8f;
+                    rb.AddForce(pullDownForce, ForceMode.Acceleration);
+                }
+            }
         }
         
         // Add slight natural instability (simulates real water behavior)
@@ -534,8 +582,9 @@ public class BoatBuoyancy : MonoBehaviour
         float gravityMultiplier = 1.0f;
         
         // Scale gravity effect based on how long the boat has been out of water
-        float normalizedTime = Mathf.Clamp01(timeOutOfWater / 0.5f); // Quick ramp-up
-        gravityMultiplier = Mathf.Lerp(1.0f, airGravityMultiplier, normalizedTime);
+        // Apply stronger multiplier immediately, ramp up faster
+        float normalizedTime = Mathf.Clamp01(timeOutOfWater / 0.2f); // Much faster ramp-up
+        gravityMultiplier = Mathf.Lerp(2.0f, airGravityMultiplier * 1.5f, normalizedTime);
         
         // Apply increased downward force to help boat return to water
         if (timeOutOfWater < maxEnhancedFallTime)
@@ -548,32 +597,42 @@ public class BoatBuoyancy : MonoBehaviour
         rb.drag = airDrag;
         rb.angularDrag = airAngularDrag;
         
-        // If boat is stuck in air for too long, apply directional force toward water
-        if (timeOutOfWater > 2.0f)
+        // Find nearest water point - approximate as the water level below the boat
+        Vector3 boatPos = transform.position;
+        float targetWaterHeight;
+        
+        if (waterSurface != null && useDynamicWaterSurface)
         {
-            // Find nearest water point - approximate as the water level below the boat
-            Vector3 boatPos = transform.position;
-            float targetWaterHeight;
+            targetWaterHeight = waterSurface.GetWaterHeightAt(new Vector3(boatPos.x, 0, boatPos.z));
+        }
+        else
+        {
+            targetWaterHeight = waterLevel + CalculateWaveHeight(new Vector3(boatPos.x, 0, boatPos.z));
+        }
+        
+        // Calculate direction and distance to water
+        float distanceAboveWater = boatPos.y - targetWaterHeight;
+        Vector3 directionToWater = Vector3.down;
+        
+        // Always apply some force toward water, increasing with time and distance
+        // Apply immediately instead of waiting 2 seconds
+        float rescueForce = Mathf.Lerp(0.7f, 3.0f, Mathf.Clamp01(timeOutOfWater / 1.0f));
+        
+        // Scale force by distance from water
+        rescueForce *= Mathf.Clamp01(1.0f + distanceAboveWater * 0.5f);
+        
+        // Apply force toward water
+        rb.AddForce(directionToWater * rescueForce * rb.mass, ForceMode.Acceleration);
             
-            if (waterSurface != null && useDynamicWaterSurface)
-            {
-                targetWaterHeight = waterSurface.GetWaterHeightAt(new Vector3(boatPos.x, 0, boatPos.z));
-            }
-            else
-            {
-                targetWaterHeight = waterLevel + CalculateWaveHeight(new Vector3(boatPos.x, 0, boatPos.z));
-            }
-            
-            // Calculate direction toward water
-            Vector3 directionToWater = new Vector3(0, targetWaterHeight - boatPos.y, 0).normalized;
-            
-            // Apply force toward water, increasing with time
-            float rescueForce = Mathf.Lerp(0.5f, 2.0f, (timeOutOfWater - 2.0f) / 3.0f);
-            rb.AddForce(directionToWater * rescueForce * rb.mass, ForceMode.Acceleration);
-            
-            // Gradually stabilize rotation in air for better landing
-            Quaternion targetRotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * 0.3f);
+        // Gradually stabilize rotation in air for better landing
+        Quaternion targetRotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * 0.5f);
+        
+        // If we're far above water, apply an additional direct force down
+        if (distanceAboveWater > 1.0f)
+        {
+            float directForce = distanceAboveWater * buoyancyForce * 0.3f;
+            rb.AddForce(Vector3.down * directForce, ForceMode.Acceleration);
         }
     }
 } 

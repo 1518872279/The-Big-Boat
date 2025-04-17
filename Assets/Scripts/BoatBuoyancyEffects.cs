@@ -308,54 +308,108 @@ public class BoatBuoyancyEffects : MonoBehaviour
     
     private bool CheckIfBoatIsUnderwater()
     {
-        if (boatBuoyancy == null || boatBuoyancy.floatingPoints == null || boatBuoyancy.floatingPoints.Length == 0 || waterSimulation == null)
+        bool isUnderwater = false;
+        float lowestPointHeight = float.MaxValue;
+        Vector3 lowestPoint = Vector3.zero;
+        float waterLevelAtLowest = 0f;
+        
+        if (boatBuoyancy.floatingPoints == null || boatBuoyancy.floatingPoints.Length == 0)
             return false;
             
-        // Check if any floating points are underwater
-        int underwaterPoints = 0;
+        // Find the lowest point of the boat
         foreach (Transform point in boatBuoyancy.floatingPoints)
         {
             if (point == null) continue;
             
+            if (point.position.y < lowestPointHeight)
+            {
+                lowestPointHeight = point.position.y;
+                lowestPoint = point.position;
+            }
+            
+            // Check if this point is underwater
             float waterHeight = waterSimulation.GetWaterHeightAt(point.position);
             if (point.position.y < waterHeight)
             {
-                underwaterPoints++;
+                isUnderwater = true;
             }
         }
         
-        // Consider the boat underwater if at least half of the floating points are underwater
-        return underwaterPoints >= boatBuoyancy.floatingPoints.Length / 2;
-    }
-    
-    // New method to track airborne state
-    private void TrackAirborneState(bool isUnderwater)
-    {
-        if (!isUnderwater)
+        // Get water level at the lowest point
+        if (waterSimulation != null && lowestPoint != Vector3.zero)
         {
-            // Boat is out of water
-            if (!isAirborne)
+            waterLevelAtLowest = waterSimulation.GetWaterHeightAt(lowestPoint);
+            
+            // If the boat is completely out of water, try to apply an attractive force to the water
+            if (!isUnderwater && lowestPointHeight > waterLevelAtLowest)
             {
-                // Just became airborne
-                isAirborne = true;
-                airborneTime = 0f;
-            }
-            else
-            {
-                // Continue tracking airborne time
-                airborneTime += Time.deltaTime;
+                // Calculate distance above water
+                float distanceAboveWater = lowestPointHeight - waterLevelAtLowest;
+                
+                // If we're within a reasonable distance of the water (not too far above)
+                if (distanceAboveWater < 2.0f)
+                {
+                    // Apply a downward force proportional to the distance
+                    float pullForce = Mathf.Lerp(0.5f, 2.0f, distanceAboveWater / 2.0f);
+                    rb.AddForceAtPosition(Vector3.down * pullForce * rb.mass, lowestPoint, ForceMode.Acceleration);
+                }
             }
         }
-        else if (isAirborne)
+        
+        return isUnderwater;
+    }
+    
+    private void TrackAirborneState(bool isUnderwater)
+    {
+        // Update airborne tracking
+        if (!isUnderwater && wasUnderwater)
         {
-            // Boat was airborne but now is back in water
-            if (enableReturnSplashEffects && airborneTime > minAirborneTimeForSplash)
+            // Boat has just left the water
+            isAirborne = true;
+            airborneTime = 0f;
+        }
+        else if (!isUnderwater && isAirborne)
+        {
+            // Boat continues to be airborne
+            airborneTime += Time.deltaTime;
+            
+            // If airborne for a significant time, ensure it returns to water
+            if (airborneTime > 1.5f && rb != null)
             {
-                // Create dramatic return splash
+                // Calculate the boat center position
+                Vector3 boatCenter = transform.position;
+                
+                // Get water height at boat center
+                float waterHeight = 0f;
+                if (waterSimulation != null)
+                {
+                    waterHeight = waterSimulation.GetWaterHeightAt(
+                        new Vector3(boatCenter.x, 0, boatCenter.z));
+                }
+                
+                // Calculate distance above water
+                float heightAboveWater = boatCenter.y - waterHeight;
+                
+                // Apply increasing downward force the longer it's airborne and the higher it is
+                float gravityMultiplier = Mathf.Lerp(1.5f, 5.0f, 
+                    Mathf.Clamp01(airborneTime / 3.0f));
+                    
+                // Scale by height
+                gravityMultiplier *= Mathf.Clamp01(1.0f + heightAboveWater * 0.2f);
+                
+                // Apply the force
+                rb.AddForce(Physics.gravity * gravityMultiplier * rb.mass, 
+                    ForceMode.Acceleration);
+            }
+        }
+        else if (isUnderwater && isAirborne)
+        {
+            // Boat has returned to water after being airborne
+            if (airborneTime > minAirborneTimeForSplash && enableReturnSplashEffects)
+            {
                 CreateReturnSplashEffect();
             }
             
-            // Reset airborne state
             isAirborne = false;
             airborneTime = 0f;
         }
