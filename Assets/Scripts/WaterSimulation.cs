@@ -8,11 +8,23 @@ public class WaterSimulation : MonoBehaviour
     public float waterHeight = 0f;           // Base water height (rest position)
     
     [Header("Wave Simulation")]
-    public float springConstant = 45f;       // Reduced stiffness from 50f for more stability
-    public float damping = 6.5f;            // Increased damping from 5f to reduce oscillation
-    public float forceMultiplier = 1.5f;     // Reduced from 2f for subtler effects
-    public float waveSpread = 0.08f;         // Reduced from 0.1f for less chaotic wave propagation
-    public float maxWaveHeight = 0.4f;       // Reduced from 0.5f for less extreme waves
+    public float springConstant = 42f;       // Reduced stiffness for more natural wave movement
+    public float damping = 7f;               // Increased damping for better viscosity simulation
+    public float forceMultiplier = 1.5f;     // Force multiplier for external forces
+    public float waveSpread = 0.12f;         // Increased wave spread for better propagation
+    public float maxWaveHeight = 0.4f;       // Maximum displacement for any vertex
+    public float viscosity = 0.05f;          // NEW: Controls fluid viscosity (resistance to flow)
+    public float surfaceTension = 0.02f;     // NEW: Controls surface tension (cohesion at surface)
+    
+    [Header("Realistic Fluid Effects")]
+    [Tooltip("Enable realistic directional wave propagation")]
+    public bool enableDirectionalWaves = true;
+    [Tooltip("Enable vorticity calculation for swirls and eddies")]
+    public bool enableVorticity = true;
+    [Tooltip("Simulates surface tension at wave peaks")]
+    public bool enableSurfaceTension = true;
+    [Range(0.1f, 2.0f)]
+    public float wavePropagationSpeed = 1.0f; // How quickly waves travel through the water
     
     [Header("Visual Shader Settings")]
     public bool updateShaderParameters = true;   // Whether to update the shader based on simulation
@@ -47,6 +59,11 @@ public class WaterSimulation : MonoBehaviour
     private float shaderUpdateInterval = 0.05f; // Update shader every 50ms
     private MaterialPropertyBlock propertyBlock;
     
+    // New variables for enhanced fluid simulation
+    private float[] previousHeights;  // Previous frame heights for acceleration calculation
+    private Vector2[] flowVelocity;   // 2D flow velocity at each vertex
+    private float[] vorticity;        // Vorticity at each vertex (curl of velocity field)
+    
     void Start()
     {
         // Get or add required components
@@ -75,12 +92,20 @@ public class WaterSimulation : MonoBehaviour
         velocities = new float[vertexCount];
         accelerations = new float[vertexCount];
         
+        // Initialize new arrays for enhanced fluid dynamics
+        previousHeights = new float[vertexCount];
+        flowVelocity = new Vector2[vertexCount];
+        vorticity = new float[vertexCount];
+        
         // Set the water to be initially flat
         for (int i = 0; i < vertexCount; i++)
         {
             vertexHeights[i] = 0f;
+            previousHeights[i] = 0f;
             velocities[i] = 0f;
             accelerations[i] = 0f;
+            flowVelocity[i] = Vector2.zero;
+            vorticity[i] = 0f;
         }
         
         // Initialize gazing box tracking
@@ -198,7 +223,10 @@ public class WaterSimulation : MonoBehaviour
             externalForce = Vector3.zero;
         }
         
-        // First pass: calculate accelerations
+        // Store current heights as previous before updating
+        System.Array.Copy(vertexHeights, previousHeights, vertexHeights.Length);
+        
+        // First pass: calculate accelerations with enhanced fluid dynamics
         for (int i = 0; i < vertices.Length; i++)
         {
             // Apply spring-damper formula: a = -k*x - c*v + F
@@ -213,16 +241,17 @@ public class WaterSimulation : MonoBehaviour
             if (gazingBox != null)
             {
                 Vector3 localPos = transform.InverseTransformPoint(originalVertices[i]);
-                float xTiltEffect = externalForce.z * localPos.x * 0.08f; // Reduced from 0.1f
-                float zTiltEffect = externalForce.x * localPos.z * 0.08f; // Reduced from 0.1f
+                float xTiltEffect = externalForce.z * localPos.x * 0.08f;
+                float zTiltEffect = externalForce.x * localPos.z * 0.08f;
                 vertexForce += xTiltEffect + zTiltEffect;
             }
             
-            // Calculate new acceleration
-            accelerations[i] = springForce + dampingForce + (vertexForce * forceMultiplier);
+            // Calculate new acceleration with viscosity term
+            float viscosityDamping = -viscosity * Mathf.Abs(velocities[i]) * velocities[i]; // Non-linear damping
+            accelerations[i] = springForce + dampingForce + viscosityDamping + (vertexForce * forceMultiplier);
         }
         
-        // Second pass: update velocities and positions with neighbor effects
+        // Second pass: update velocities and positions
         for (int i = 0; i < vertices.Length; i++)
         {
             // Update velocity with current acceleration
@@ -231,6 +260,14 @@ public class WaterSimulation : MonoBehaviour
             // Update height with current velocity
             vertexHeights[i] += velocities[i] * deltaTime;
             
+            // Add surface tension effect at peaks and troughs
+            if (enableSurfaceTension && Mathf.Abs(vertexHeights[i]) > 0.1f)
+            {
+                // Surface tension tries to flatten peaks and valleys
+                float tensionForce = -surfaceTension * Mathf.Sign(vertexHeights[i]) * Mathf.Pow(Mathf.Abs(vertexHeights[i]), 2);
+                vertexHeights[i] += tensionForce * deltaTime;
+            }
+            
             // Clamp maximum wave height
             vertexHeights[i] = Mathf.Clamp(vertexHeights[i], -maxWaveHeight, maxWaveHeight);
             
@@ -238,13 +275,124 @@ public class WaterSimulation : MonoBehaviour
             vertices[i] = originalVertices[i] + new Vector3(0, vertexHeights[i], 0);
         }
         
-        // Third pass: wave propagation to neighbors (simplified)
+        // Third pass: apply enhanced wave propagation
         if (waveSpread > 0)
         {
-            ApplyWavePropagation(deltaTime);
+            if (enableDirectionalWaves)
+                ApplyDirectionalWavePropagation(deltaTime, externalForce);
+            else
+                ApplyWavePropagation(deltaTime);
+        }
+        
+        // Fourth pass: calculate vorticity (curl of velocity field)
+        if (enableVorticity)
+            CalculateVorticity(deltaTime);
+    }
+    
+    // Enhanced wave propagation that considers direction of tilting/forces
+    void ApplyDirectionalWavePropagation(float deltaTime, Vector3 externalForce)
+    {
+        // Create a temporary array to store the height changes
+        float[] heightChanges = new float[vertices.Length];
+        
+        // Determine primary wave direction based on external force
+        Vector2 waveDirection = new Vector2(externalForce.x, externalForce.z).normalized;
+        float directionMagnitude = new Vector2(externalForce.x, externalForce.z).magnitude;
+        
+        // Adjust spread factor based on direction strength
+        float directionalFactor = Mathf.Lerp(1.0f, 2.0f, Mathf.Clamp01(directionMagnitude / 5.0f));
+        
+        for (int z = 0; z <= gridSize; z++)
+        {
+            for (int x = 0; x <= gridSize; x++)
+            {
+                int index = z * (gridSize + 1) + x;
+                float totalHeight = 0f;
+                float totalWeight = 0f;
+                
+                // Check surrounding vertices with directional bias
+                for (int nz = Mathf.Max(0, z - 1); nz <= Mathf.Min(gridSize, z + 1); nz++)
+                {
+                    for (int nx = Mathf.Max(0, x - 1); nx <= Mathf.Min(gridSize, x + 1); nx++)
+                    {
+                        int neighborIndex = nz * (gridSize + 1) + nx;
+                        
+                        // Skip self
+                        if (neighborIndex != index)
+                        {
+                            // Calculate direction from this vertex to neighbor
+                            Vector2 toNeighbor = new Vector2(nx - x, nz - z).normalized;
+                            
+                            // Directional weight (higher in wave direction)
+                            float dirWeight = 1.0f;
+                            if (directionMagnitude > 0.5f)
+                            {
+                                // Dot product determines how aligned neighbor is with wave direction
+                                float alignment = Vector2.Dot(waveDirection, toNeighbor);
+                                // Higher weight in wave direction, but still allow some sideways/backward propagation
+                                dirWeight = Mathf.Lerp(0.5f, directionalFactor, Mathf.Max(0, alignment));
+                            }
+                            
+                            // Calculate distance-based weight (closer = stronger influence)
+                            float distance = Vector2.Distance(new Vector2(x, z), new Vector2(nx, nz));
+                            float distWeight = 1.0f / (distance * 2f);
+                            
+                            // Combined weight considers both direction and distance
+                            float weight = dirWeight * distWeight;
+                            totalWeight += weight;
+                            totalHeight += vertexHeights[neighborIndex] * weight;
+                            
+                            // Add flow velocity influence
+                            if (enableVorticity)
+                            {
+                                // Propagate flow velocity between neighbors
+                                flowVelocity[index] += flowVelocity[neighborIndex] * weight * 0.05f;
+                            }
+                        }
+                    }
+                }
+                
+                if (totalWeight > 0)
+                {
+                    float avgHeight = totalHeight / totalWeight;
+                    
+                    // Apply wave propagation with speed consideration
+                    float propagationFactor = waveSpread * wavePropagationSpeed;
+                    heightChanges[index] = (avgHeight - vertexHeights[index]) * propagationFactor;
+                    
+                    // Update flow velocity based on height differences (creates horizontal flow)
+                    if (enableVorticity && x > 0 && x < gridSize && z > 0 && z < gridSize)
+                    {
+                        // Calculate height gradients
+                        float gradientX = (vertexHeights[(z) * (gridSize + 1) + (x + 1)] - 
+                                           vertexHeights[(z) * (gridSize + 1) + (x - 1)]) * 0.5f;
+                        float gradientZ = (vertexHeights[(z + 1) * (gridSize + 1) + (x)] - 
+                                           vertexHeights[(z - 1) * (gridSize + 1) + (x)]) * 0.5f;
+                        
+                        // Flow moves from high to low points (perpendicular to gradient)
+                        Vector2 heightGradient = new Vector2(gradientX, gradientZ);
+                        Vector2 flowDirection = new Vector2(-heightGradient.y, heightGradient.x).normalized;
+                        float gradientStrength = heightGradient.magnitude;
+                        
+                        // Update flow velocity
+                        flowVelocity[index] += flowDirection * gradientStrength * 0.1f;
+                        
+                        // Apply viscous damping to flow
+                        flowVelocity[index] *= (1f - viscosity * deltaTime);
+                    }
+                }
+            }
+        }
+        
+        // Apply the changes
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertexHeights[i] += heightChanges[i];
+            vertices[i].y = originalVertices[i].y + vertexHeights[i];
         }
     }
     
+    // Original wave propagation method as a fallback
     void ApplyWavePropagation(float deltaTime)
     {
         // Create a temporary array to store the height changes to avoid immediate influence
@@ -287,6 +435,44 @@ public class WaterSimulation : MonoBehaviour
         {
             vertexHeights[i] += heightChanges[i];
             vertices[i].y = originalVertices[i].y + vertexHeights[i];
+        }
+    }
+    
+    // Calculate vorticity (curl of the velocity field)
+    void CalculateVorticity(float deltaTime)
+    {
+        // Only calculate for interior vertices to avoid boundary issues
+        for (int z = 1; z < gridSize; z++)
+        {
+            for (int x = 1; x < gridSize; x++)
+            {
+                int index = z * (gridSize + 1) + x;
+                
+                // Indices for adjacent vertices
+                int right = z * (gridSize + 1) + (x + 1);
+                int left = z * (gridSize + 1) + (x - 1);
+                int up = (z + 1) * (gridSize + 1) + x;
+                int down = (z - 1) * (gridSize + 1) + x;
+                
+                // Calculate curl of the flow velocity field
+                float dvx_dz = (flowVelocity[up].x - flowVelocity[down].x) * 0.5f;
+                float dvz_dx = (flowVelocity[right].y - flowVelocity[left].y) * 0.5f;
+                
+                // Vorticity is the curl (rotation) of the flow field
+                vorticity[index] = dvx_dz - dvz_dx;
+                
+                // Apply vorticity confinement (strengthens existing vortices)
+                float vortStrength = 0.05f;
+                if (Mathf.Abs(vorticity[index]) > 0.01f)
+                {
+                    // Add a small vertical velocity based on vorticity
+                    velocities[index] += vorticity[index] * vortStrength * deltaTime;
+                    
+                    // Create horizontal flow based on vorticity
+                    float angle = vorticity[index] * 10f * Mathf.Deg2Rad;
+                    flowVelocity[index] += new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * vortStrength * deltaTime;
+                }
+            }
         }
     }
     
@@ -512,7 +698,7 @@ public class WaterSimulation : MonoBehaviour
         return transform.TransformDirection(normal);
     }
     
-    // Method to add force to the water at a specific point (e.g., from boat movement or obstacles)
+    // Enhanced version of AddForceAtPosition that creates more realistic splash physics
     public void AddForceAtPosition(Vector3 worldPosition, float force, float radius)
     {
         Vector3 localPos = transform.InverseTransformPoint(worldPosition);
@@ -531,7 +717,13 @@ public class WaterSimulation : MonoBehaviour
             return;
         }
         
-        // Apply force to vertices within radius
+        // Find the impact center grid coordinates
+        float normalizedX = (localPos.x + halfSize) / meshSize;
+        float normalizedZ = (localPos.z + halfSize) / meshSize;
+        int centerX = Mathf.FloorToInt(normalizedX * gridSize);
+        int centerZ = Mathf.FloorToInt(normalizedZ * gridSize);
+        
+        // Create ripple wave pattern with realistic physics
         for (int i = 0; i < vertices.Length; i++)
         {
             Vector3 vertexLocalPos = originalVertices[i];
@@ -542,9 +734,52 @@ public class WaterSimulation : MonoBehaviour
             
             if (distance <= radius)
             {
-                // Falloff with distance using smoother curve
-                float falloff = Mathf.Pow(1f - (distance / radius), 1.2f);
-                velocities[i] += force * falloff;
+                // Create initial depression (negative force) for realistic splash
+                float falloff;
+                bool isUpwardForce = force > 0;
+                
+                if (isUpwardForce)
+                {
+                    // For upward forces (like object exiting water)
+                    // Create upward peak with slight depression ring
+                    if (distance < radius * 0.3f)
+                    {
+                        // Central peak
+                        falloff = Mathf.Pow(1f - (distance / (radius * 0.3f)), 1.2f);
+                        velocities[i] += force * falloff;
+                    }
+                    else
+                    {
+                        // Surrounding depression ring
+                        float ringFalloff = 1f - ((distance - radius * 0.3f) / (radius * 0.7f));
+                        ringFalloff = Mathf.Pow(ringFalloff, 1.5f);
+                        velocities[i] += -force * 0.2f * ringFalloff; // Smaller negative force for the ring
+                    }
+                }
+                else
+                {
+                    // For downward forces (like impact)
+                    // Create initial depression followed by wave propagation
+                    falloff = Mathf.Pow(1f - (distance / radius), 1.2f);
+                    
+                    // Initial depression at impact point
+                    if (distance < radius * 0.5f)
+                    {
+                        velocities[i] += force * falloff;
+                        
+                        // Create outward flow from impact point
+                        if (enableVorticity && i != centerZ * (gridSize + 1) + centerX)
+                        {
+                            // Calculate direction away from impact
+                            Vector2 impactPos = new Vector2(localPos.x, localPos.z);
+                            Vector2 vertexPos = new Vector2(vertexLocalPos.x, vertexLocalPos.z);
+                            Vector2 outwardDir = (vertexPos - impactPos).normalized;
+                            
+                            // Add outward flow velocity proportional to force and proximity
+                            flowVelocity[i] += outwardDir * Mathf.Abs(force) * falloff * 0.5f;
+                        }
+                    }
+                }
             }
         }
         
@@ -556,12 +791,15 @@ public class WaterSimulation : MonoBehaviour
             {
                 meshRenderer.GetPropertyBlock(propertyBlock);
                 
-                // Increase foam at impact site
-                float foamAmount = Mathf.Lerp(0.04f, 0.3f, Mathf.Clamp01(Mathf.Abs(force)));
+                // Increase foam at impact site with radial pattern
+                float foamAmount = Mathf.Lerp(0.04f, 0.4f, Mathf.Clamp01(Mathf.Abs(force)));
                 propertyBlock.SetFloat("_FoamMinDistance", foamAmount);
                 
+                // Set impact position for shader to create radial pattern
+                propertyBlock.SetVector("_ImpactPosition", new Vector4(normalizedX, normalizedZ, Time.time, Mathf.Abs(force)));
+                
                 // Increase wave steepness temporarily
-                float waveImpact = Mathf.Clamp01(Mathf.Abs(force) * 0.2f);
+                float waveImpact = Mathf.Clamp01(Mathf.Abs(force) * 0.25f);
                 Vector4 tempWaveA = propertyBlock.GetVector("_WaveA");
                 tempWaveA.z += waveImpact;
                 propertyBlock.SetVector("_WaveA", tempWaveA);

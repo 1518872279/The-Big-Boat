@@ -12,8 +12,10 @@ public class CameraShaker : MonoBehaviour
     
     // Internal variables
     private Vector3 originalPosition;
-    private bool isShaking = false;
     private Coroutine currentShakeCoroutine;
+    
+    // Property to check if the camera is currently shaking
+    public bool IsShaking => currentShakeCoroutine != null;
     
     private void Awake()
     {
@@ -58,8 +60,6 @@ public class CameraShaker : MonoBehaviour
             StopCoroutine(currentShakeCoroutine);
             currentShakeCoroutine = null;
         }
-        
-        isShaking = false;
     }
     
     private void ResetCameraPosition()
@@ -69,7 +69,6 @@ public class CameraShaker : MonoBehaviour
     
     private IEnumerator ShakeCoroutine(float intensity, float duration)
     {
-        isShaking = true;
         float elapsed = 0f;
         
         while (elapsed < duration)
@@ -94,6 +93,6 @@ public class CameraShaker : MonoBehaviour
         
         // Reset position
         ResetCameraPosition();
-        isShaking = false;
+        currentShakeCoroutine = null;
     }
 } 
