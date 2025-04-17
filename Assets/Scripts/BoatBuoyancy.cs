@@ -9,6 +9,16 @@ public class BoatBuoyancy : MonoBehaviour
     public float waterDrag = 0.99f;
     public float waterAngularDrag = 0.5f;
     
+    [Header("Air Physics")]
+    [Tooltip("Controls enhanced gravity when boat is out of water")]
+    public float airGravityMultiplier = 2.5f;
+    [Tooltip("Drag applied when in air")]
+    public float airDrag = 0.1f;
+    [Tooltip("How quickly the boat stabilizes in air")]
+    public float airAngularDrag = 0.2f;
+    [Tooltip("Maximum time to apply enhanced falling physics")]
+    public float maxEnhancedFallTime = 5.0f;
+    
     [Header("Buoyancy Points")]
     public Transform[] floatingPoints;
     
@@ -43,6 +53,9 @@ public class BoatBuoyancy : MonoBehaviour
     private Vector3 initialPosition;
     private Quaternion initialRotation;
     private Collider boatCollider;
+    private bool wasInWater = true;
+    private float timeOutOfWater = 0f;
+    private Vector3 standardGravity;
     
     // Event to notify game manager when boat has been tilted for too long
     public delegate void BoatStabilityEvent();
@@ -52,6 +65,9 @@ public class BoatBuoyancy : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         boatCollider = GetComponent<Collider>();
+        
+        // Store the standard gravity setting
+        standardGravity = Physics.gravity;
         
         // If no floating points are specified, create some based on the collider
         if (floatingPoints == null || floatingPoints.Length == 0)
@@ -111,6 +127,29 @@ public class BoatBuoyancy : MonoBehaviour
     
     private void FixedUpdate()
     {
+        // Check if any floating point is in water
+        bool isInWater = IsAnyPointInWater();
+        
+        // Update time tracking for air physics
+        if (!isInWater)
+        {
+            if (wasInWater)
+            {
+                // Just left water
+                timeOutOfWater = 0f;
+            }
+            timeOutOfWater += Time.fixedDeltaTime;
+            ApplyAirPhysics();
+        }
+        else
+        {
+            timeOutOfWater = 0f;
+            // Ensure standard gravity is restored when in water
+            rb.useGravity = true;
+        }
+        
+        wasInWater = isInWater;
+        
         ApplyBuoyancyForces();
         
         // Check for collision with boundaries and apply corrective forces if needed
@@ -198,6 +237,10 @@ public class BoatBuoyancy : MonoBehaviour
             
             // Apply angular drag
             rb.angularVelocity *= (1 - waterAngularDrag * Time.fixedDeltaTime);
+            
+            // Reset air physics when in water
+            rb.drag = 0.01f; // Low drag in water (handled manually via waterDrag)
+            rb.angularDrag = 0.01f; // Low angular drag in water (handled manually)
         }
         
         // Add slight natural instability (simulates real water behavior)
@@ -451,6 +494,86 @@ public class BoatBuoyancy : MonoBehaviour
             Vector3 right = Vector3.Cross(Vector3.up, targetDirection).normalized * 0.2f;
             Gizmos.DrawLine(end, end - targetDirection.normalized * 0.5f + right);
             Gizmos.DrawLine(end, end - targetDirection.normalized * 0.5f - right);
+        }
+    }
+    
+    // New method to check if any point is in water
+    private bool IsAnyPointInWater()
+    {
+        if (floatingPoints == null || floatingPoints.Length == 0)
+            return false;
+        
+        foreach (Transform point in floatingPoints)
+        {
+            if (point == null) continue;
+            
+            float effectiveWaterLevel;
+            if (waterSurface != null && useDynamicWaterSurface)
+            {
+                effectiveWaterLevel = waterSurface.GetWaterHeightAt(point.position);
+            }
+            else
+            {
+                float waveHeight = CalculateWaveHeight(point.position);
+                effectiveWaterLevel = waterLevel + waveHeight;
+            }
+            
+            if (point.position.y < effectiveWaterLevel)
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // New method to apply air physics when boat is completely out of water
+    private void ApplyAirPhysics()
+    {
+        // Apply enhanced falling physics for better air behavior
+        float gravityMultiplier = 1.0f;
+        
+        // Scale gravity effect based on how long the boat has been out of water
+        float normalizedTime = Mathf.Clamp01(timeOutOfWater / 0.5f); // Quick ramp-up
+        gravityMultiplier = Mathf.Lerp(1.0f, airGravityMultiplier, normalizedTime);
+        
+        // Apply increased downward force to help boat return to water
+        if (timeOutOfWater < maxEnhancedFallTime)
+        {
+            Vector3 enhancedGravity = standardGravity * gravityMultiplier;
+            rb.AddForce(enhancedGravity * rb.mass, ForceMode.Acceleration);
+        }
+        
+        // Apply air drag
+        rb.drag = airDrag;
+        rb.angularDrag = airAngularDrag;
+        
+        // If boat is stuck in air for too long, apply directional force toward water
+        if (timeOutOfWater > 2.0f)
+        {
+            // Find nearest water point - approximate as the water level below the boat
+            Vector3 boatPos = transform.position;
+            float targetWaterHeight;
+            
+            if (waterSurface != null && useDynamicWaterSurface)
+            {
+                targetWaterHeight = waterSurface.GetWaterHeightAt(new Vector3(boatPos.x, 0, boatPos.z));
+            }
+            else
+            {
+                targetWaterHeight = waterLevel + CalculateWaveHeight(new Vector3(boatPos.x, 0, boatPos.z));
+            }
+            
+            // Calculate direction toward water
+            Vector3 directionToWater = new Vector3(0, targetWaterHeight - boatPos.y, 0).normalized;
+            
+            // Apply force toward water, increasing with time
+            float rescueForce = Mathf.Lerp(0.5f, 2.0f, (timeOutOfWater - 2.0f) / 3.0f);
+            rb.AddForce(directionToWater * rescueForce * rb.mass, ForceMode.Acceleration);
+            
+            // Gradually stabilize rotation in air for better landing
+            Quaternion targetRotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * 0.3f);
         }
     }
 } 

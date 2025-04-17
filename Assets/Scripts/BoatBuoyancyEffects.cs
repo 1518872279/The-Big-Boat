@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
 /// Creates enhanced visual water effects based on boat movement.
@@ -66,6 +67,23 @@ public class BoatBuoyancyEffects : MonoBehaviour
     [Range(0.05f, 1.0f)]
     public float effectCooldown = 0.15f;
     
+    [Header("Air & Return Effects")]
+    [Tooltip("Enable enhanced splash when boat returns to water after being airborne")]
+    public bool enableReturnSplashEffects = true;
+    
+    [Tooltip("Minimum time boat must be airborne to trigger enhanced return splash")]
+    public float minAirborneTimeForSplash = 0.8f;
+    
+    [Tooltip("How much larger the return splash should be compared to normal")]
+    [Range(1.0f, 5.0f)]
+    public float returnSplashMultiplier = 2.5f;
+    
+    [Tooltip("Sound to play when boat crashes back to water")]
+    public AudioClip waterCrashSound;
+    
+    [Range(0f, 1f)]
+    public float crashSoundVolume = 0.7f;
+    
     // Private variables
     private Rigidbody rb;
     private float lastBobbingTime;
@@ -74,6 +92,9 @@ public class BoatBuoyancyEffects : MonoBehaviour
     private Vector3 lastVelocity = Vector3.zero;
     private Vector3 smoothedVelocity = Vector3.zero;
     private float lastEffectTime = 0f;
+    private float airborneTime = 0f;
+    private bool isAirborne = false;
+    private AudioSource audioSource;
     
     private void Awake()
     {
@@ -94,6 +115,16 @@ public class BoatBuoyancyEffects : MonoBehaviour
             Debug.LogError("BoatBuoyancyEffects requires a Rigidbody component!");
             enabled = false;
             return;
+        }
+        
+        // Get or add audio source for crash sound
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null && waterCrashSound != null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 1.0f; // 3D sound
+            audioSource.priority = 0; // High priority
         }
         
         // Auto-find water simulation if not assigned
@@ -142,6 +173,9 @@ public class BoatBuoyancyEffects : MonoBehaviour
         
         // Get boat data from buoyancy component
         bool isUnderwater = CheckIfBoatIsUnderwater();
+        
+        // Track airborne state for return to water effects
+        TrackAirborneState(isUnderwater);
         
         // Create wake effects based on speed
         if (enableWakeEffects && effectTimer > effectCooldown)
@@ -292,5 +326,125 @@ public class BoatBuoyancyEffects : MonoBehaviour
         
         // Consider the boat underwater if at least half of the floating points are underwater
         return underwaterPoints >= boatBuoyancy.floatingPoints.Length / 2;
+    }
+    
+    // New method to track airborne state
+    private void TrackAirborneState(bool isUnderwater)
+    {
+        if (!isUnderwater)
+        {
+            // Boat is out of water
+            if (!isAirborne)
+            {
+                // Just became airborne
+                isAirborne = true;
+                airborneTime = 0f;
+            }
+            else
+            {
+                // Continue tracking airborne time
+                airborneTime += Time.deltaTime;
+            }
+        }
+        else if (isAirborne)
+        {
+            // Boat was airborne but now is back in water
+            if (enableReturnSplashEffects && airborneTime > minAirborneTimeForSplash)
+            {
+                // Create dramatic return splash
+                CreateReturnSplashEffect();
+            }
+            
+            // Reset airborne state
+            isAirborne = false;
+            airborneTime = 0f;
+        }
+    }
+    
+    // New method for dramatic water return effect
+    private void CreateReturnSplashEffect()
+    {
+        // Calculate impact velocity and force
+        float impactVelocity = Mathf.Abs(rb.velocity.y);
+        float splashForce = Mathf.Clamp(impactVelocity * impactScale * returnSplashMultiplier, 1.0f, 15f);
+        float splashRadius = Mathf.Lerp(1.5f, 4.0f, splashForce / 15f);
+        
+        // Create multiple splash points for more dramatic effect
+        Vector3[] splashPoints = new Vector3[3];
+        splashPoints[0] = transform.position; // Center splash
+        splashPoints[1] = transform.position + transform.right * 0.5f; // Right splash
+        splashPoints[2] = transform.position - transform.right * 0.5f; // Left splash
+        
+        // Apply forces to create dramatic splash pattern
+        foreach (Vector3 point in splashPoints)
+        {
+            // Downward force creates depression (hole in water)
+            waterSimulation.AddForceAtPosition(point, -splashForce * 0.7f, splashRadius * 0.6f);
+            
+            // Then create outward splash with slight delay
+            StartCoroutine(DelayedSplash(point, splashForce, splashRadius, 0.05f));
+        }
+        
+        // Play crash sound if available
+        if (audioSource != null && waterCrashSound != null && impactVelocity > 1.0f)
+        {
+            float volume = Mathf.Lerp(0.3f, crashSoundVolume, Mathf.Clamp01(impactVelocity / 10f));
+            audioSource.pitch = Random.Range(0.9f, 1.1f);
+            audioSource.PlayOneShot(waterCrashSound, volume);
+        }
+        
+        // Play particle effect with enhanced size if available
+        if (splashParticles != null)
+        {
+            // Scale particles based on impact force
+            float particleScale = Mathf.Lerp(1.0f, 2.5f, splashForce / 15f);
+            splashParticles.transform.localScale = Vector3.one * particleScale;
+            
+            // Increase emission rate based on impact - simpler approach without using constantMultiplier
+            var emission = splashParticles.emission;
+            float originalRate = emission.rateOverTime.constant;
+            emission.rateOverTime = originalRate * 1.5f;
+            
+            // Play the effect
+            splashParticles.Play();
+            
+            // Reset emission rate after a short delay
+            StartCoroutine(ResetParticleEmission(originalRate, 1.0f));
+        }
+    }
+    
+    // Coroutine for delayed splash to create more realistic water displacement
+    private System.Collections.IEnumerator DelayedSplash(Vector3 position, float force, float radius, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        
+        // Upward force creates splash (after initial depression)
+        waterSimulation.AddForceAtPosition(position, force, radius);
+        
+        // Add some outward ripples
+        Vector3[] ripplePoints = new Vector3[4];
+        float rippleDistance = radius * 0.7f;
+        ripplePoints[0] = position + new Vector3(rippleDistance, 0, 0);
+        ripplePoints[1] = position + new Vector3(-rippleDistance, 0, 0);
+        ripplePoints[2] = position + new Vector3(0, 0, rippleDistance);
+        ripplePoints[3] = position + new Vector3(0, 0, -rippleDistance);
+        
+        foreach (Vector3 ripplePoint in ripplePoints)
+        {
+            yield return new WaitForSeconds(0.02f);
+            waterSimulation.AddForceAtPosition(ripplePoint, force * 0.3f, radius * 0.6f);
+        }
+    }
+    
+    // Updated coroutine to reset particle emission rate
+    private System.Collections.IEnumerator ResetParticleEmission(float originalRate, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        
+        if (splashParticles != null)
+        {
+            var emission = splashParticles.emission;
+            emission.rateOverTime = originalRate;
+        }
     }
 } 

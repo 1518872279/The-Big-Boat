@@ -60,6 +60,23 @@ public class WaterSynchronizer : MonoBehaviour
     [Range(0f, 0.2f)]
     public float jitterThreshold = 0.08f;
     
+    [Header("Shader Effect Enhancement")]
+    [Tooltip("Enable enhanced shader effects for more realistic water appearance")]
+    public bool enhancedShaderEffects = true;
+    
+    [Tooltip("How strongly the flow dynamics affect the shader visuals")]
+    [Range(0f, 1f)]
+    public float flowVisualizationStrength = 0.5f;
+    
+    [Tooltip("Enable subtle wave refraction for more realistic appearance")]
+    public bool enableWaveRefraction = true;
+    
+    [Tooltip("Create subtle random waves for more organic water movement")]
+    public bool enableMicroWaves = true;
+    
+    [Range(0f, 1f)]
+    public float microWaveStrength = 0.3f;
+    
     // Cached values to avoid redundant material updates
     private float lastBoxRotationX = 0f;
     private float lastBoxRotationZ = 0f;
@@ -78,7 +95,10 @@ public class WaterSynchronizer : MonoBehaviour
     // Tracking for rotation smoothing
     private Vector3 boxRotationVelocity = Vector3.zero;
     private Vector3 previousBoxRotation = Vector3.zero;
-    private float directionChangeVelocity = 0f;
+    
+    private Vector4 lastImpactData = Vector4.zero; // Data about recent impacts for visual effects
+    private bool hasRecentImpact = false;
+    private float impactVisualsTimer = 0f;
     
     private void Awake()
     {
@@ -296,6 +316,76 @@ public class WaterSynchronizer : MonoBehaviour
             // Set wave steepness with smoothed value
             propertyBlock.SetFloat(waveSteepnessProperty, smoothedSteepness);
             
+            // Apply enhanced visual effects if enabled
+            if (enhancedShaderEffects)
+            {
+                // Add micro-wave detail for more natural water movement
+                if (enableMicroWaves)
+                {
+                    float time = Time.time * 0.1f;
+                    // Create subtle time-based variation in wave pattern
+                    Vector4 microWaveParams = new Vector4(
+                        Mathf.Sin(time * 0.5f) * 0.1f + 0.5f,
+                        Mathf.Cos(time * 0.7f) * 0.1f + 0.5f,
+                        Mathf.Sin(time * 1.1f) * microWaveStrength * 0.5f,
+                        Mathf.Cos(time * 0.9f) * 0.5f + 0.5f
+                    );
+                    propertyBlock.SetVector("_MicroWaveParams", microWaveParams);
+                }
+                
+                // Apply flow visualization if available in the water simulation
+                if (waterSimulation && boatBuoyancy && flowVisualizationStrength > 0.01f)
+                {
+                    // Get boat position for proximity-based effects
+                    Vector3 boatPos = boatBuoyancy.transform.position;
+                    Vector3 localBoatPos = waterSimulation.transform.InverseTransformPoint(boatPos);
+                    float boatDistance = new Vector2(localBoatPos.x, localBoatPos.z).magnitude;
+                    
+                    // Calculate normalized position on water surface
+                    Vector2 normalizedBoatPos = new Vector2(
+                        (localBoatPos.x / waterSimulation.meshSize) + 0.5f,
+                        (localBoatPos.z / waterSimulation.meshSize) + 0.5f
+                    );
+                    
+                    // Set boat influence parameters for shader
+                    propertyBlock.SetVector("_BoatPosition", new Vector4(
+                        normalizedBoatPos.x, 
+                        normalizedBoatPos.y, 
+                        Mathf.Min(1.0f, boatBuoyancy.GetComponent<Rigidbody>().velocity.magnitude * 0.2f),
+                        flowVisualizationStrength
+                    ));
+                }
+                
+                // Apply refraction effect
+                if (enableWaveRefraction)
+                {
+                    float refractionStrength = 0.02f * smoothedWaveHeight / waterSimulation.maxWaveHeight;
+                    propertyBlock.SetFloat("_RefractionStrength", refractionStrength);
+                }
+                
+                // Process recent impact visualization
+                if (hasRecentImpact)
+                {
+                    impactVisualsTimer += Time.deltaTime;
+                    if (impactVisualsTimer < 2.0f) // Impact effects last for 2 seconds
+                    {
+                        // Update impact visualization with fadeout
+                        float impactProgress = 1.0f - (impactVisualsTimer / 2.0f);
+                        Vector4 impactVisuals = new Vector4(
+                            lastImpactData.x, 
+                            lastImpactData.y, 
+                            lastImpactData.z + Time.time, // Adding time for shader animation
+                            lastImpactData.w * impactProgress // Fade out effect strength
+                        );
+                        propertyBlock.SetVector("_ImpactPosition", impactVisuals);
+                    }
+                    else
+                    {
+                        hasRecentImpact = false;
+                    }
+                }
+            }
+            
             // Apply all properties to the renderer
             waterRenderer.SetPropertyBlock(propertyBlock);
         }
@@ -327,7 +417,7 @@ public class WaterSynchronizer : MonoBehaviour
                 float velocityMagnitude = pointVelocity.magnitude;
                 
                 // Only create waves for significant movement, with higher threshold
-                if (velocityMagnitude > 1.5f) // Increased from 1.0f
+                if (velocityMagnitude > 1.5f)
                 {
                     // Distance from point to water surface
                     float waterHeight = waterSimulation.GetWaterHeightAt(point.position);
@@ -336,9 +426,30 @@ public class WaterSynchronizer : MonoBehaviour
                     // If point is near water surface (entering or exiting)
                     if (distanceToWater < 0.3f)
                     {
-                        // Apply force to water proportional to velocity, but with reduced intensity
-                        float force = -velocityMagnitude * 0.03f; // Reduced from 0.05f
-                        waterSimulation.AddForceAtPosition(point.position, force, velocityMagnitude * 0.25f); // Reduced radius
+                        // Apply force to water proportional to velocity
+                        float force = -velocityMagnitude * 0.03f;
+                        Vector3 localPos = waterSimulation.transform.InverseTransformPoint(point.position);
+                        
+                        // Record impact for enhanced visuals
+                        if (enhancedShaderEffects && velocityMagnitude > 2.0f)
+                        {
+                            Vector2 normalizedPos = new Vector2(
+                                (localPos.x / waterSimulation.meshSize) + 0.5f,
+                                (localPos.z / waterSimulation.meshSize) + 0.5f
+                            );
+                            
+                            lastImpactData = new Vector4(
+                                normalizedPos.x, 
+                                normalizedPos.y, 
+                                0, // Time offset, will be set in update
+                                velocityMagnitude * 0.1f // Impact strength
+                            );
+                            
+                            hasRecentImpact = true;
+                            impactVisualsTimer = 0f;
+                        }
+                        
+                        waterSimulation.AddForceAtPosition(point.position, force, velocityMagnitude * 0.25f);
                     }
                 }
             }
