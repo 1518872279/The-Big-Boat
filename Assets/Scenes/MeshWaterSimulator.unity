@@ -228,6 +228,58 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.04, y: 0.9999861, z: 0.9999861}
   m_Center: {x: -0.48753983, y: 0, z: 0}
+--- !u!1 &298556036
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 298556037}
+  - component: {fileID: 298556038}
+  m_Layer: 0
+  m_Name: Floater (4)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &298556037
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 298556036}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.5, y: 0.225, z: 0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1152726480}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &298556038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 298556036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9361838d6500d488ceeed55ea02fb9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rigidbody: {fileID: 1152726483}
+  depthBeforeSubmerged: 1
+  displacementAmount: 3
+  floaterCount: 8
+  waterDrag: 2
+  waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &397342879
 GameObject:
   m_ObjectHideFlags: 0
@@ -254,7 +306,7 @@ Transform:
   m_GameObject: {fileID: 397342879}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5, y: -0.29, z: -0.5}
+  m_LocalPosition: {x: 0.5, y: 0.225, z: -0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -275,9 +327,11 @@ MonoBehaviour:
   rigidbody: {fileID: 1152726483}
   depthBeforeSubmerged: 1
   displacementAmount: 3
-  floaterCount: 4
+  floaterCount: 8
   waterDrag: 2
   waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &618869234
 GameObject:
   m_ObjectHideFlags: 0
@@ -308,7 +362,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 5, y: 5, z: 5}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -379,6 +433,13 @@ MonoBehaviour:
   length: 2
   speed: 1
   offset: 0
+  useSecondaryWave: 1
+  secondaryAmplitude: 0.5
+  secondaryLength: 1
+  secondarySpeed: 0.5
+  secondaryOffset: 0
+  distanceFalloff: 100
+  playerTransform: {fileID: 0}
 --- !u!114 &618869241
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -391,6 +452,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3229a0a601046344194202747f98cd7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  updateInterval: 1
+  maxVerticesPerFrame: 1000
+  maxUpdateDistance: 150
+  useZCoordinate: 1
 --- !u!1 &822003426
 GameObject:
   m_ObjectHideFlags: 0
@@ -444,6 +509,58 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.04, y: 0.9999877, z: 0.9999877}
   m_Center: {x: 0.48454535, y: 0, z: 0}
+--- !u!1 &844891195
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 844891196}
+  - component: {fileID: 844891197}
+  m_Layer: 0
+  m_Name: Floater (7)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &844891196
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 844891195}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.5, y: 0.225, z: -0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1152726480}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &844891197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 844891195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9361838d6500d488ceeed55ea02fb9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rigidbody: {fileID: 1152726483}
+  depthBeforeSubmerged: 1
+  displacementAmount: 3
+  floaterCount: 8
+  waterDrag: 2
+  waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &915216304
 GameObject:
   m_ObjectHideFlags: 0
@@ -523,7 +640,7 @@ Transform:
   m_GameObject: {fileID: 957071147}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.5, y: -0.29, z: -0.5}
+  m_LocalPosition: {x: -0.5, y: 0.225, z: -0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -544,9 +661,11 @@ MonoBehaviour:
   rigidbody: {fileID: 1152726483}
   depthBeforeSubmerged: 1
   displacementAmount: 3
-  floaterCount: 4
+  floaterCount: 8
   waterDrag: 2
   waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &1066636631
 GameObject:
   m_ObjectHideFlags: 0
@@ -573,7 +692,7 @@ Transform:
   m_GameObject: {fileID: 1066636631}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5, y: -0.29, z: 0.5}
+  m_LocalPosition: {x: 0.5, y: 0.225, z: 0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -594,9 +713,11 @@ MonoBehaviour:
   rigidbody: {fileID: 1152726483}
   depthBeforeSubmerged: 1
   displacementAmount: 3
-  floaterCount: 4
+  floaterCount: 8
   waterDrag: 2
   waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &1111962192
 GameObject:
   m_ObjectHideFlags: 0
@@ -969,6 +1090,10 @@ Transform:
   - {fileID: 1758387092}
   - {fileID: 397342880}
   - {fileID: 957071148}
+  - {fileID: 298556037}
+  - {fileID: 1160584130}
+  - {fileID: 2070670721}
+  - {fileID: 844891196}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!54 &1152726483
@@ -991,13 +1116,65 @@ Rigidbody:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
+  m_ImplicitCom: 0
+  m_ImplicitTensor: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!1 &1160584129
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1160584130}
+  - component: {fileID: 1160584131}
+  m_Layer: 0
+  m_Name: Floater (5)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1160584130
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160584129}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.5, y: 0.225, z: 0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1152726480}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1160584131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160584129}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9361838d6500d488ceeed55ea02fb9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rigidbody: {fileID: 1152726483}
+  depthBeforeSubmerged: 1
+  displacementAmount: 3
+  floaterCount: 8
+  waterDrag: 2
+  waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &1277656221
 GameObject:
   m_ObjectHideFlags: 0
@@ -1195,7 +1372,7 @@ Transform:
   m_GameObject: {fileID: 1758387091}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.5, y: -0.29, z: 0.5}
+  m_LocalPosition: {x: -0.5, y: 0.225, z: 0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1216,9 +1393,11 @@ MonoBehaviour:
   rigidbody: {fileID: 1152726483}
   depthBeforeSubmerged: 1
   displacementAmount: 3
-  floaterCount: 4
+  floaterCount: 8
   waterDrag: 2
   waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1 &1879180932
 GameObject:
   m_ObjectHideFlags: 0
@@ -1272,6 +1451,58 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.99998295, y: 0.99998295, z: 0.04}
   m_Center: {x: 0, y: 0, z: -0.4896064}
+--- !u!1 &2070670720
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2070670721}
+  - component: {fileID: 2070670722}
+  m_Layer: 0
+  m_Name: Floater (6)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2070670721
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2070670720}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.5, y: 0.225, z: -0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1152726480}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2070670722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2070670720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f9361838d6500d488ceeed55ea02fb9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rigidbody: {fileID: 1152726483}
+  depthBeforeSubmerged: 1
+  displacementAmount: 3
+  floaterCount: 8
+  waterDrag: 2
+  waterAngularDrag: 5
+  updateFrequency: 0.05
+  maxForceDistance: 50
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
